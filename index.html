@@ -140,7 +140,7 @@
     fetch(url,{signal:ctrl.signal}).then(function(r){return r.json();}).then(function(d){
       clearTimeout(to);
       if(token!==_rt) return;
-      if(d&&d.routes&&d.routes[0]){ T.routeMiles=+(d.routes[0].distance/1).toFixed(1); T.routeSource='OSM'; }
+      if(d&&d.routes&&d.routes[0]){ T.routeMiles=+(d.routes[0].distance/1609.344).toFixed(1); T.routeSource='OSM'; }
       else { T.routeMiles=+(haversine(a,b)*1.32).toFixed(1); T.routeSource='estimate'; }
       T.routeLoading=false; render();
     }).catch(function(){
