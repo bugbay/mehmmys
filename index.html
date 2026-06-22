@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<title>Mehmmy — Ride Rewards</title>
+<meta name="description" content="Give friends a Mehmmy every time they drive you. Track points and miles, climb the leaderboard, redeem rewards." />
+<link rel="manifest" href="./manifest.webmanifest" />
+<meta name="theme-color" content="#2fbf71" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Mehmmy" />
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+<link rel="icon" type="image/png" href="./icons/icon-192.png" />
+<script type="module" src="./firebase-sync.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:'Space Grotesk',system-ui,sans-serif;
+    background:#161512;color:#161512;
+    overscroll-behavior:none;
+  }
+  /* phone column — fills the viewport on mobile / standalone, framed column on desktop */
+  #app{
+    position:relative;display:flex;flex-direction:column;
+    width:100%;max-width:460px;margin:0 auto;
+    height:100dvh;min-height:100dvh;
+    background:#fff8ec;overflow:hidden;
+  }
+  @media(min-width:480px){
+    body{display:flex;align-items:center;justify-content:center;padding:24px}
+    #app{height:min(860px,94dvh);border-radius:34px;border:2.5px solid #161512;box-shadow:0 30px 60px -18px rgba(0,0,0,.5)}
+  }
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 12px) 24px 6px;font-size:13px;font-weight:700;flex:none}
+  .content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .content::-webkit-scrollbar{display:none}
+  .content{scrollbar-width:none}
+  .pad{padding:6px 18px 28px}
+  h1.scr{font-family:'Bricolage Grotesque',sans-serif;font-size:27px;font-weight:800;line-height:1;margin:0}
+  .sub{font-size:13px;font-weight:500;color:#6b6557;margin-top:5px}
+  .eyebrow{font-family:'Bricolage Grotesque',sans-serif;font-size:13px;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
+  .row{display:flex;align-items:center}
+  .hscroll{display:flex;gap:13px;overflow-x:auto;padding:4px 2px 8px}
+  .hscroll::-webkit-scrollbar{display:none}.hscroll{scrollbar-width:none}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .card{background:#fff;border:2.5px solid #161512;border-radius:14px;box-shadow:2px 2px 0 #161512}
+  .btn{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;cursor:pointer;border:2.5px solid #161512}
+  .tabbar{display:flex;background:#fff8ec;padding:9px 10px calc(env(safe-area-inset-bottom) + 14px);border-top:2.5px solid #161512;flex:none}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;background:none;border:none;font-family:inherit}
+  .tab .dot{width:5px;height:5px;border-radius:50%}
+  input.mh{font-family:'Space Grotesk',sans-serif;width:100%;border:2.5px solid #161512;border-radius:12px;padding:11px 13px;font-size:14px;font-weight:600;color:#161512;background:#fff;outline:none}
+  input.mh::placeholder{color:#b3a994}
+  input.mh:focus{box-shadow:3px 3px 0 #2fbf71}
+  .overlay{position:absolute;inset:0;background:rgba(22,21,18,.42);z-index:40}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff8ec;border-top:3px solid #161512;border-radius:26px 26px 0 0;z-index:41;padding:18px 20px calc(env(safe-area-inset-bottom) + 24px);max-height:90%;overflow-y:auto}
+  .sheet::-webkit-scrollbar{display:none}.sheet{scrollbar-width:none}
+  .grab{width:46px;height:5px;border-radius:3px;background:#d8cfb8;margin:0 auto 16px}
+  .toast{position:absolute;top:calc(env(safe-area-inset-top) + 44px);left:18px;right:18px;background:#2fbf71;border:2.5px solid #161512;border-radius:16px;box-shadow:5px 5px 0 #161512;padding:13px 15px;display:flex;align-items:center;gap:12px;z-index:50}
+  @keyframes toastpop{0%{transform:translateY(-16px) scale(.9) rotate(-2deg);opacity:0}60%{transform:translateY(0) scale(1.04) rotate(-2deg);opacity:1}100%{transform:translateY(0) scale(1) rotate(-2deg);opacity:1}}
+  .toast{animation:toastpop .34s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes sheetup{from{transform:translateY(102%)}to{transform:translateY(0)}}
+  .sheet{animation:sheetup .26s cubic-bezier(.2,.9,.3,1)}
+  .install{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 84px);background:#161512;color:#fff8ec;border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:12px;z-index:45;box-shadow:0 8px 24px -6px rgba(0,0,0,.4)}
+  .ios{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 84px);background:#161512;color:#fff8ec;border-radius:16px;padding:14px 16px;z-index:46;box-shadow:0 8px 24px -6px rgba(0,0,0,.45)}
+  .ios b{color:#7dd3fc}
+  .ios .share{display:inline-flex;width:20px;height:20px;border:2px solid #7dd3fc;border-radius:5px;align-items:center;justify-content:center;vertical-align:-5px;margin:0 2px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+(function(){
+  var KEY = 'mehmmy.app.v2';
+  var PALETTE = ['#FDBA74','#C4B5FD','#F9A8D4','#7DD3FC','#FCD34D','#86EFAC','#FDE68A','#FCA5A5','#A7F3D0','#FBCFE8','#BFDBFE','#DDD6FE'];
+  var EMOJI = ['🦄','🐧','🐙','🐢','🦝','🐰','🐶','🐯','🦋','🐳','🦔','🦅'];
+  var USER = 'Mehmet', P = 'Mehmmy', Pp = 'Mehmmys';
+  function plur(n){ return n===1 ? P : Pp; }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+
+  function defaults(){
+    return {
+      tab:'ride', driverId:null, fromId:'home', toId:'work', boardSort:'mehmmys', rewardId:1,
+      friends:[
+        {id:1,name:'Deniz',mehmmys:9,miles:71.4,rides:9,emoji:'🦊',color:'#FDBA74'},
+        {id:2,name:'Mert',mehmmys:7,miles:58.2,rides:7,emoji:'🐻',color:'#C4B5FD'},
+        {id:3,name:'Selin',mehmmys:6,miles:44.0,rides:6,emoji:'🐱',color:'#F9A8D4'},
+        {id:4,name:'Can',mehmmys:5,miles:39.7,rides:5,emoji:'🐼',color:'#7DD3FC'},
+        {id:5,name:'Ayşe',mehmmys:4,miles:31.5,rides:4,emoji:'🦉',color:'#FCD34D'},
+        {id:6,name:'Kerem',mehmmys:3,miles:22.1,rides:3,emoji:'🐸',color:'#86EFAC'},
+        {id:7,name:'Zeynep',mehmmys:2,miles:14.8,rides:2,emoji:'🐝',color:'#FDE68A'},
+        {id:8,name:'Burak',mehmmys:1,miles:8.4,rides:1,emoji:'🦁',color:'#FCA5A5'}
+      ],
+      places:[
+        {id:'home',name:'Home',lat:42.3601,lon:-71.0589},
+        {id:'work',name:'Work',lat:42.3736,lon:-71.1097},
+        {id:'gym',name:'Gym',lat:42.3467,lon:-71.0972},
+        {id:'bar',name:'Bar',lat:42.3493,lon:-71.0822},
+        {id:'airport',name:'Airport',lat:42.3656,lon:-71.0096},
+        {id:'moms',name:"Mom's",lat:42.4072,lon:-71.1190}
+      ],
+      activity:[
+        {id:'a1',type:'ride',name:'Deniz',emoji:'🦊',from:'Work',to:'Home',miles:8.4,time:'2h ago'},
+        {id:'a2',type:'ride',name:'Mert',emoji:'🐻',from:'Home',to:'Gym',miles:3.1,time:'Yesterday'},
+        {id:'a3',type:'ride',name:'Selin',emoji:'🐱',from:'Bar',to:'Home',miles:5.7,time:'Yesterday'},
+        {id:'a4',type:'ride',name:'Deniz',emoji:'🦊',from:'Airport',to:'Home',miles:14.2,time:'Sat'},
+        {id:'a5',type:'ride',name:'Ayşe',emoji:'🦉',from:'Work',to:'Home',miles:8.4,time:'Sat'}
+      ],
+      totalRides:37, totalMiles:290.1, totalGiven:37
+    };
+  }
+
+  // ---- state ----
+  var S = defaults();
+  var cloudMode = false;
+  function cloud(){ return (cloudMode && window.MehmmyCloud && window.MehmmyCloud.enabled) ? window.MehmmyCloud : null; }
+  // transient (not persisted)
+  var T = { sheet:null, toast:null, routeMiles:null, routeLoading:false, routeSource:null,
+            friendEmoji:'🦄', friendName:'', placeLabel:'', placeQuery:'',
+            searchResults:null, searchChosen:null, searching:false, searchMsg:'', installEvt:null };
+
+  function load(){
+    try{ var raw=localStorage.getItem(KEY); if(raw){ var d=JSON.parse(raw); if(d&&d.friends){ Object.assign(S,d); } } }catch(e){}
+  }
+  function save(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify({
+        friends:S.friends, places:S.places, activity:S.activity,
+        totalRides:S.totalRides, totalMiles:S.totalMiles, totalGiven:S.totalGiven,
+        fromId:S.fromId, toId:S.toId, rewardId:S.rewardId, boardSort:S.boardSort, tab:S.tab
+      }));
+    }catch(e){}
+  }
+
+  // ---- OSM ----
+  function haversine(a,b){
+    var R=3958.8, rad=function(x){return x*Math.PI/180;};
+    var dLat=rad(b.lat-a.lat), dLon=rad(b.lon-a.lon);
+    var s=Math.pow(Math.sin(dLat/2),2)+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.pow(Math.sin(dLon/2),2);
+    return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));
+  }
+  var _rt=0;
+  function computeRoute(){
+    var a=S.places.filter(function(p){return p.id===S.fromId;})[0];
+    var b=S.places.filter(function(p){return p.id===S.toId;})[0];
+    if(!a||!b||a.id===b.id){ T.routeMiles=null; T.routeLoading=false; T.routeSource=null; render(); return; }
+    var token=++_rt; T.routeLoading=true; render();
+    var url='https://router.project-osrm.org/route/v1/driving/'+a.lon+','+a.lat+';'+b.lon+','+b.lat+'?overview=false';
+    var ctrl=new AbortController(); var to=setTimeout(function(){ctrl.abort();},6000);
+    fetch(url,{signal:ctrl.signal}).then(function(r){return r.json();}).then(function(d){
+      clearTimeout(to);
+      if(token!==_rt) return;
+      if(d&&d.routes&&d.routes[0]){ T.routeMiles=+(d.routes[0].distance/1609.344).toFixed(1); T.routeSource='OSM'; }
+      else { T.routeMiles=+(haversine(a,b)*1.32).toFixed(1); T.routeSource='estimate'; }
+      T.routeLoading=false; render();
+    }).catch(function(){
+      clearTimeout(to);
+      if(token!==_rt) return;
+      T.routeMiles=+(haversine(a,b)*1.32).toFixed(1); T.routeSource='estimate'; T.routeLoading=false; render();
+    });
+  }
+  function runSearch(){
+    var q=(T.placeQuery||'').trim();
+    if(!q||T.searching) return;
+    T.searching=true; T.searchResults=null; T.searchChosen=null; T.searchMsg=''; render();
+    var url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q='+encodeURIComponent(q);
+    var ctrl=new AbortController(); var to=setTimeout(function(){ctrl.abort();},7000);
+    fetch(url,{signal:ctrl.signal,headers:{'Accept':'application/json'}}).then(function(r){return r.json();}).then(function(d){
+      clearTimeout(to);
+      T.searching=false;
+      T.searchResults=(d||[]).map(function(r,i){return {idx:i,label:r.display_name,lat:parseFloat(r.lat),lon:parseFloat(r.lon)};});
+      T.searchMsg=T.searchResults.length?'':'No matches — try adding a city.';
+      render();
+    }).catch(function(){
+      clearTimeout(to); T.searching=false; T.searchResults=[]; T.searchMsg='Search unavailable. Check connection and retry.'; render();
+    });
+  }
+
+  function showToast(t){
+    T.toast=t; render();
+    clearTimeout(showToast._t);
+    showToast._t=setTimeout(function(){ T.toast=null; render(); },2600);
+  }
+
+  // ---- helpers to build markup ----
+  function avatar(emoji,bg,size,sel,glow){
+    return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:'+(size*0.5)+'px;flex:none;border:'+(sel?'3px solid #161512;box-shadow:3px 3px 0 '+glow:'2px solid #161512')+'">'+emoji+'</div>';
+  }
+
+  // ---- screens ----
+  function statusBar(){
+    return '<div class="statusbar"><span>9:41</span><span style="display:flex;align-items:center;gap:5px"><span style="font-size:11px">📶</span><span style="width:18px;height:10px;border:1.5px solid #161512;border-radius:3px;display:inline-block;position:relative"><span style="position:absolute;inset:1.5px;width:60%;background:#161512;border-radius:1px"></span></span></span></div>';
+  }
+
+  function rideScreen(){
+    var h='<div class="pad">';
+    h+='<h1 class="scr">Log a ride</h1><div class="sub">Caught a lift? Tag your driver — they bank a '+P+' for it.</div>';
+    h+='<div class="eyebrow" style="margin:20px 0 10px">1 · Who drove?</div><div class="hscroll">';
+    S.friends.forEach(function(f){
+      var sel=S.driverId===f.id;
+      h+='<div data-act="driver" data-id="'+f.id+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;cursor:pointer;width:58px">'+
+        '<div style="opacity:'+(sel?1:0.85)+'">'+avatar(f.emoji,f.color,54,sel,'#2fbf71')+'</div>'+
+        '<div style="font-size:12px;font-weight:'+(sel?800:600)+';color:'+(sel?'#161512':'#6b6557')+'">'+esc(f.name)+'</div></div>';
+    });
+    h+='<div data-act="openfriend" style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;cursor:pointer;width:58px">'+
+      '<div style="width:54px;height:54px;border-radius:50%;background:#fff8ec;border:2.5px dashed #161512;display:flex;align-items:center;justify-content:center;font-size:26px">＋</div>'+
+      '<div style="font-size:12px;font-weight:600;color:#6b6557">Add</div></div>';
+    h+='</div>';
+
+    h+='<div class="eyebrow" style="margin:18px 0 10px">2 · Which route?</div>';
+    h+=routeChips('FROM','from',S.fromId,'#2fbf71');
+    h+=routeChips('TO','to',S.toId,'#ff6b4a');
+
+    var fromP=S.places.filter(function(p){return p.id===S.fromId;})[0];
+    var toP=S.places.filter(function(p){return p.id===S.toId;})[0];
+    var same=S.fromId===S.toId;
+    var milesText=T.routeLoading?'· · ·':(same?'—':(T.routeMiles!=null?T.routeMiles.toFixed(1):'—'));
+    var srcText=same?'pick two places':(T.routeLoading?'measuring route…':(T.routeSource==='OSM'?'via OpenStreetMap':'estimated offline'));
+    var dot=(T.routeSource==='OSM'&&!T.routeLoading&&!same)?'#2fbf71':(T.routeLoading?'#ffd23f':'#c2b8a3');
+
+    h+='<div class="card" style="margin-top:18px;box-shadow:4px 4px 0 #161512;border-radius:18px;padding:15px 16px">'+
+      '<div class="row" style="gap:8px"><div style="width:13px;height:13px;border-radius:50%;background:#2fbf71;border:2.5px solid #161512;flex:none"></div>'+
+      '<div style="flex:1;height:0;border-top:2.5px dashed #cabf9f"></div><div style="font-size:15px">🚗</div>'+
+      '<div style="flex:1;height:0;border-top:2.5px dashed #cabf9f"></div><div style="width:13px;height:13px;border-radius:50%;background:#ff6b4a;border:2.5px solid #161512;flex:none"></div></div>'+
+      '<div class="row" style="justify-content:space-between;margin-top:7px;gap:10px">'+
+        '<div style="font-size:12px;font-weight:700;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(fromP?fromP.name:'—')+'</div>'+
+        '<div style="font-size:12px;font-weight:700;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+esc(toP?toP.name:'—')+'</div></div>'+
+      '<div class="row" style="align-items:baseline;gap:7px;margin-top:12px;border-top:2px solid #f0ece0;padding-top:12px">'+
+        '<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:34px;font-weight:800;line-height:1">'+milesText+'</div>'+
+        '<div style="font-size:14px;font-weight:700">miles</div>'+
+        '<div class="row" style="margin-left:auto;gap:5px;font-size:10px;font-weight:700;color:#9a8f7a;max-width:130px;text-align:right"><span style="width:7px;height:7px;border-radius:50%;background:'+dot+';flex:none"></span><span>'+srcText+'</span></div>'+
+      '</div></div>';
+
+    var driver=S.friends.filter(function(f){return f.id===S.driverId;})[0];
+    var canLog=!!driver&&!same&&!T.routeLoading&&T.routeMiles!=null;
+    var label=!driver?'Pick a driver first':(same?'Pick two different places':(T.routeLoading?'Measuring route…':'Log ride · +1 for '+driver.name));
+    h+='<div '+(canLog?'data-act="logride" ':'')+'class="btn" style="margin-top:18px;text-align:center;border-radius:16px;padding:15px;font-size:16px;'+
+      (canLog?'background:#2fbf71;color:#161512;box-shadow:4px 4px 0 #161512':'background:#e6dfca;border-color:#c2b8a3;color:#a89e88;cursor:default')+'">'+esc(label)+'</div>';
+    h+='</div>';
+    return h;
+  }
+  function routeChips(title,act,activeId,color){
+    var h='<div style="font-size:11px;font-weight:700;color:#9a8f7a;margin:'+(title==='TO'?'12px':'0')+' 0 7px">'+title+'</div><div class="chips">';
+    S.places.forEach(function(p){
+      var sel=activeId===p.id;
+      h+='<div data-act="'+act+'" data-id="'+p.id+'" style="flex:none;max-width:150px;padding:7px 13px;border-radius:20px;cursor:pointer;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:'+
+        (sel?'2.5px solid #161512;background:'+color+';font-weight:700;color:#161512;box-shadow:2px 2px 0 #161512':'2px solid #161512;background:#fff8ec;font-weight:600;color:#6b6557')+'">'+esc(p.name)+'</div>';
+    });
+    h+='<div data-act="openplace" style="padding:7px 13px;border-radius:20px;cursor:pointer;font-size:13px;border:2px dashed #161512;background:#fff8ec;font-weight:700;color:#161512">＋ place</div></div>';
+    return h;
+  }
+
+  function boardScreen(){
+    var isMiles=S.boardSort==='miles';
+    var sorted=S.friends.slice().sort(function(a,b){return isMiles?b.miles-a.miles:(b.mehmmys-a.mehmmys)||(b.miles-a.miles);});
+    var top=sorted[0]||{name:'—',emoji:'🙂',color:'#eee',mehmmys:0,miles:0};
+    var h='<div class="pad"><h1 class="scr">Leaderboard</h1><div class="sub">The whole crew, ranked this month.</div>';
+    h+='<div class="row" style="gap:9px;margin-top:14px">'+sortChip(Pp,'mehmmys',!isMiles)+sortChip('Miles','miles',isMiles)+'</div>';
+    h+='<div style="margin-top:16px;background:#2fbf71;border:2.5px solid #161512;border-radius:18px;padding:16px;box-shadow:5px 5px 0 #161512;position:relative">'+
+      '<div style="position:absolute;top:-13px;right:16px;background:#ffd23f;border:2.5px solid #161512;border-radius:9px;font-size:11px;font-weight:700;padding:3px 10px;transform:rotate(4deg)">TOP DRIVER 👑</div>'+
+      '<div class="row" style="gap:13px">'+avatar(top.emoji,top.color,54,false,'')+
+      '<div style="flex:1;min-width:0"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:20px;font-weight:800">'+esc(top.name)+'</div>'+
+      '<div style="font-size:12px;font-weight:700;color:#0f5132">'+(isMiles?(top.mehmmys+' '+Pp):(top.miles.toFixed(1)+' miles driven'))+'</div></div>'+
+      '<div style="text-align:center;flex:none"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:30px;font-weight:800;line-height:1">'+(isMiles?top.miles.toFixed(1):top.mehmmys)+'</div>'+
+      '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">'+(isMiles?'mi':Pp)+'</div></div></div></div>';
+    h+='<div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">';
+    sorted.slice(1).forEach(function(f,i){
+      h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:9px 13px">'+
+        '<div style="width:20px;font-family:\'Bricolage Grotesque\',sans-serif;font-weight:800;font-size:16px;text-align:center;flex:none">'+(i+2)+'</div>'+
+        avatar(f.emoji,f.color,36,false,'')+
+        '<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+esc(f.name)+'</div>'+
+        '<div style="font-size:11px;font-weight:600;color:#9a8f7a">'+(isMiles?(f.mehmmys+' '+plur(f.mehmmys)):(f.miles.toFixed(1)+' mi driven'))+'</div></div>'+
+        '<div class="row" style="align-items:baseline;gap:3px;flex:none"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-weight:800;font-size:19px">'+(isMiles?f.miles.toFixed(1):f.mehmmys)+'</div>'+
+        '<div style="font-size:10px;font-weight:700;color:#9a8f7a">'+(isMiles?'mi':plur(f.mehmmys))+'</div></div></div>';
+    });
+    h+='</div></div>';
+    return h;
+  }
+  function sortChip(label,val,active){
+    return '<div data-act="sort" data-id="'+val+'" style="padding:8px 18px;border-radius:22px;cursor:pointer;font-size:13px;font-weight:700;border:2.5px solid #161512;'+
+      (active?'background:#161512;color:#fff8ec':'background:transparent;color:#161512')+'">'+label+'</div>';
+  }
+
+  var TIERS=[
+    {n:3,icon:'☕',title:'Coffee or bakery treat',sub:'Latte, pastry or cookie'},
+    {n:5,icon:'💳',title:'$15 gift card',sub:'Your pick of spot'},
+    {n:7,icon:'🍻',title:'Happy hour or $25 card',sub:'First round covered'},
+    {n:10,icon:'🎁',title:'$50 gift card',sub:'The big one'}
+  ];
+  function rewardsScreen(){
+    var rf=S.friends.filter(function(f){return f.id===S.rewardId;})[0]||S.friends[0]||{name:'—',mehmmys:0,emoji:'🙂'};
+    var bal=rf.mehmmys||0;
+    var h='<div class="pad"><h1 class="scr">Rewards</h1><div class="sub">Pick a friend and cash in their '+Pp+'. 🎟️</div>';
+    h+='<div class="hscroll" style="gap:11px;padding:14px 2px 8px">';
+    S.friends.forEach(function(f){
+      var sel=S.rewardId===f.id;
+      h+='<div data-act="reward" data-id="'+f.id+'" style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;cursor:pointer;width:52px">'+
+        '<div style="opacity:'+(sel?1:0.85)+'">'+avatar(f.emoji,f.color,46,sel,'#ff6b4a')+'</div>'+
+        '<div style="font-size:11px;font-weight:'+(sel?800:600)+';color:'+(sel?'#161512':'#6b6557')+'">'+esc(f.name)+'</div></div>';
+    });
+    h+='</div>';
+    var pct=Math.min(bal/10,1)*100;
+    var next=TIERS.filter(function(t){return bal<t.n;})[0];
+    var nextText=next?((next.n-bal)+' more '+plur(next.n-bal)+' → '+next.title):'Every tier unlocked! 🏅';
+    h+='<div style="margin-top:6px;background:#ff6b4a;border:2.5px solid #161512;border-radius:18px;padding:16px;box-shadow:5px 5px 0 #161512">'+
+      '<div class="row" style="align-items:baseline;justify-content:space-between"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:17px;font-weight:800">'+esc(rf.name)+'\'s wallet</div>'+
+      '<div style="font-size:12px;font-weight:700">'+bal+' '+plur(bal)+' to spend</div></div>'+
+      '<div style="margin-top:12px;height:13px;background:#fff8ec;border:2.5px solid #161512;border-radius:8px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:#2fbf71;border-right:2.5px solid #161512"></div></div>'+
+      '<div style="font-size:11px;font-weight:700;margin-top:8px">'+esc(nextText)+'</div></div>';
+    h+='<div style="display:flex;flex-direction:column;gap:11px;margin-top:16px">';
+    TIERS.forEach(function(t){
+      var ok=bal>=t.n;
+      h+='<div style="background:'+(ok?'#fff':'#f3efe2')+';border:2.5px solid #161512;border-radius:15px;padding:12px 13px;box-shadow:3px 3px 0 #161512;display:flex;align-items:center;gap:12px">'+
+        '<div style="width:42px;height:42px;border-radius:11px;background:#fff8ec;border:2.5px solid #161512;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none">'+t.icon+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+t.title+'</div>'+
+        '<div style="font-size:11px;font-weight:600;color:#6b6557">'+t.sub+'</div>'+
+        '<div style="font-size:10px;font-weight:800;color:'+(ok?'#0f8a4c':'#9a8f7a')+';margin-top:3px;text-transform:uppercase;letter-spacing:.03em">'+(ok?'Ready · '+t.n+' '+Pp:(t.n-bal)+' more to unlock')+'</div></div>'+
+        '<div '+(ok?'data-act="redeem" data-id="'+t.n+'" ':'')+'class="btn" style="flex:none;padding:9px 14px;border-radius:11px;font-size:13px;'+
+        (ok?'background:#2fbf71;color:#161512;box-shadow:2px 2px 0 #161512':'background:#e6dfca;border-color:#c2b8a3;color:#a89e88;cursor:default')+'">'+(ok?'Redeem':'Locked')+'</div></div>';
+    });
+    h+='</div></div>';
+    return h;
+  }
+
+  function activityScreen(){
+    var h='<div class="pad"><h1 class="scr">Activity</h1><div class="sub">Every ride logged and reward claimed.</div>';
+    h+='<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">';
+    S.activity.forEach(function(a){
+      if(a.type==='ride'){
+        h+=actRow('🚗','#86efac',esc(a.name)+' drove you',esc(a.from)+' → '+esc(a.to),'+1 · '+a.miles.toFixed(1)+'mi','#0f8a4c',a.time);
+      }else{
+        h+=actRow('🎁','#fda4af',esc(a.name)+' cashed in',esc(a.title),'−'+a.cost+' '+Pp,'#c2410c',a.time);
+      }
+    });
+    h+='</div></div>';
+    return h;
+  }
+  function actRow(icon,bg,title,sub,meta,metaColor,time){
+    return '<div class="card" style="display:flex;align-items:center;gap:12px;padding:11px 13px">'+
+      '<div style="width:40px;height:40px;border-radius:11px;background:'+bg+';border:2px solid #161512;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">'+icon+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+title+'</div>'+
+      '<div style="font-size:11px;font-weight:600;color:#9a8f7a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+sub+'</div></div>'+
+      '<div style="text-align:right;flex:none;padding-left:6px"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:14px;font-weight:800;color:'+metaColor+';white-space:nowrap">'+meta+'</div>'+
+      '<div style="font-size:10px;font-weight:600;color:#c2b8a3;white-space:nowrap;margin-top:2px">'+time+'</div></div></div>';
+  }
+
+  function meScreen(){
+    var topDriver=S.friends.slice().sort(function(a,b){return b.rides-a.rides;})[0]||{name:'—',emoji:'🙂'};
+    var stats=[
+      {label:'Rides taken',value:String(S.totalRides),icon:'🚗',bg:'#86efac'},
+      {label:'Miles ridden',value:String(Math.round(S.totalMiles)),icon:'🛣️',bg:'#7dd3fc'},
+      {label:Pp+' given',value:String(S.totalGiven),icon:'⭐',bg:'#ffd23f'},
+      {label:'Top driver',value:topDriver.name,icon:topDriver.emoji,bg:'#fda4af'}
+    ];
+    var h='<div class="pad">';
+    h+='<div style="background:#7dd3fc;border:2.5px solid #161512;border-radius:20px;padding:18px;box-shadow:5px 5px 0 #161512;display:flex;align-items:center;gap:14px">'+
+      '<div style="width:58px;height:58px;border-radius:50%;background:#fff8ec;border:2.5px solid #161512;display:flex;align-items:center;justify-content:center;font-size:30px;flex:none">🙋</div>'+
+      '<div><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800;line-height:1">'+esc(USER)+'</div>'+
+      '<div style="font-size:12px;font-weight:600;color:#0c4a6e;margin-top:4px">That\'s you — the one who needs the rides 😄</div></div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">';
+    stats.forEach(function(s){
+      h+='<div class="card" style="border-radius:15px;padding:14px;box-shadow:3px 3px 0 #161512">'+
+        '<div style="width:34px;height:34px;border-radius:9px;background:'+s.bg+';border:2px solid #161512;display:flex;align-items:center;justify-content:center;font-size:18px">'+s.icon+'</div>'+
+        '<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:24px;font-weight:800;margin-top:10px;line-height:1">'+esc(s.value)+'</div>'+
+        '<div style="font-size:11px;font-weight:700;color:#9a8f7a;margin-top:3px">'+s.label+'</div></div>';
+    });
+    h+='</div>';
+    h+='<div class="row" style="justify-content:space-between;margin:22px 0 10px;gap:8px"><div class="row" style="gap:8px"><div class="eyebrow">Your crew · '+S.friends.length+'</div>'+syncBadge()+'</div>'+
+      '<div data-act="openfriend" class="btn" style="background:#2fbf71;border-radius:20px;padding:5px 13px;font-size:12px;color:#161512;box-shadow:2px 2px 0 #161512">＋ Add friend</div></div>';
+    h+='<div style="display:flex;flex-direction:column;gap:9px">';
+    S.friends.forEach(function(f){
+      h+='<div class="card" style="display:flex;align-items:center;gap:11px;border-radius:13px;padding:8px 12px">'+
+        avatar(f.emoji,f.color,34,false,'')+
+        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+esc(f.name)+'</div>'+
+        '<div style="font-size:11px;font-weight:600;color:#9a8f7a">'+f.mehmmys+' '+plur(f.mehmmys)+' · '+f.miles.toFixed(0)+' mi</div></div>'+
+        '<div data-act="rmfriend" data-id="'+f.id+'" style="width:28px;height:28px;border-radius:8px;border:2px solid #161512;background:#fff8ec;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;flex:none">✕</div></div>';
+    });
+    h+='</div>';
+    h+='<div class="eyebrow" style="margin:22px 0 10px">Saved places · '+S.places.length+'</div><div class="chips">';
+    S.places.forEach(function(p){
+      h+='<div style="display:flex;align-items:center;gap:7px;padding:7px 11px 7px 13px;border-radius:20px;border:2.5px solid #161512;background:#fff;font-size:13px;font-weight:700;box-shadow:2px 2px 0 #161512">'+
+        '<span>'+esc(p.name)+'</span><span data-act="rmplace" data-id="'+p.id+'" style="cursor:pointer;color:#9a8f7a">✕</span></div>';
+    });
+    h+='<div data-act="openplace" style="padding:7px 13px;border-radius:20px;border:2.5px dashed #161512;background:#fff8ec;font-size:13px;font-weight:700;color:#161512;cursor:pointer">＋ place</div></div>';
+    var outstanding=S.friends.reduce(function(s,f){return s+f.mehmmys;},0);
+    h+='<div style="margin-top:20px;background:#ffd23f;border:2.5px solid #161512;border-radius:15px;padding:14px;box-shadow:3px 3px 0 #161512;display:flex;align-items:center;gap:11px">'+
+      '<div style="font-size:24px">💛</div><div style="font-size:13px;font-weight:700">'+outstanding+' '+plur(outstanding)+' banked across the crew, waiting to be spent.</div></div>';
+    h+='<div style="text-align:center;font-size:10px;font-weight:600;color:#b3a994;margin-top:14px">'+syncLine()+'</div>';
+    h+='</div>';
+    return h;
+  }
+
+  function syncLine(){
+    var C=window.MehmmyCloud;
+    if(cloudMode && C){
+      if(C.status==='synced') return 'Synced with your crew · group “'+esc(C.groupId)+'” · OpenStreetMap';
+      if(C.status==='connecting') return 'Connecting to your crew… · OpenStreetMap';
+      if(C.status==='error') return 'Cloud unreachable — saved on this device · OpenStreetMap';
+    }
+    return 'Saved on this device · powered by OpenStreetMap';
+  }
+  function syncBadge(){
+    var C=window.MehmmyCloud;
+    var on = cloudMode && C && C.status==='synced';
+    var connecting = cloudMode && C && C.status==='connecting';
+    var color = on?'#2fbf71':(connecting?'#ffd23f':'#c2b8a3');
+    var label = on?'Live':(connecting?'Sync…':'Local');
+    return '<div style="display:flex;align-items:center;gap:5px;border:2px solid #161512;border-radius:20px;padding:3px 9px;background:#fff;font-size:11px;font-weight:800"><span style="width:7px;height:7px;border-radius:50%;background:'+color+'"></span>'+label+'</div>';
+  }
+  function tabBar(){
+    var defs=[['ride','🚗','Ride'],['board','🏆','Board'],['rewards','🎁','Rewards'],['activity','🧾','Activity'],['me','🙂','Me']];
+    var h='<div class="tabbar">';
+    defs.forEach(function(d){
+      var a=S.tab===d[0];
+      h+='<button class="tab" data-act="tab" data-id="'+d[0]+'"><span style="font-size:21px;opacity:'+(a?1:0.4)+'">'+d[1]+'</span>'+
+        '<span style="font-size:10px;font-weight:'+(a?800:600)+';color:'+(a?'#161512':'#9a8f7a')+'">'+d[2]+'</span>'+
+        '<span class="dot" style="background:'+(a?'#161512':'transparent')+'"></span></button>';
+    });
+    return h+'</div>';
+  }
+
+  function sheetFriend(){
+    var canSave=(T.friendName||'').trim().length>0;
+    var h='<div class="overlay" data-act="closesheet"></div><div class="sheet">'+
+      '<div class="grab"></div><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800">Add a friend</div>'+
+      '<div style="font-size:12px;font-weight:500;color:#6b6557;margin:4px 0 16px">They\'ll start banking '+Pp+' the next time they drive you.</div>'+
+      '<div style="font-size:11px;font-weight:800;color:#9a8f7a;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Name</div>'+
+      '<input class="mh" id="friendName" data-field="friendName" placeholder="e.g. Jordan" value="'+esc(T.friendName||'')+'" />'+
+      '<div style="font-size:11px;font-weight:800;color:#9a8f7a;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 9px">Pick an avatar</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:9px">';
+    EMOJI.forEach(function(e){
+      var sel=T.friendEmoji===e;
+      h+='<div data-act="emoji" data-id="'+e+'" style="width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;background:#fff;border:'+
+        (sel?'3px solid #161512;box-shadow:2px 2px 0 #2fbf71':'2px solid #d8cfb8')+'">'+e+'</div>';
+    });
+    h+='</div>';
+    h+='<div '+(canSave?'data-act="savefriend" ':'')+'class="btn" style="margin-top:20px;text-align:center;border-radius:14px;padding:14px;font-size:15px;'+
+      (canSave?'background:#2fbf71;color:#161512;box-shadow:4px 4px 0 #161512':'background:#e6dfca;border-color:#c2b8a3;color:#a89e88;cursor:default')+'">Add to crew</div></div>';
+    return h;
+  }
+  function sheetPlace(){
+    var canSave=!!T.searchChosen;
+    var h='<div class="overlay" data-act="closesheet"></div><div class="sheet">'+
+      '<div class="grab"></div><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800">Add a place</div>'+
+      '<div style="font-size:12px;font-weight:500;color:#6b6557;margin:4px 0 16px">Search any address — we\'ll map it for real distances. 🗺️</div>'+
+      '<div style="font-size:11px;font-weight:800;color:#9a8f7a;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Nickname</div>'+
+      '<input class="mh" id="placeLabel" data-field="placeLabel" placeholder="e.g. Office, Sarah\'s, The Bar" value="'+esc(T.placeLabel||'')+'" />'+
+      '<div style="font-size:11px;font-weight:800;color:#9a8f7a;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 7px">Search address or place</div>'+
+      '<div style="display:flex;gap:9px"><input class="mh" id="placeQuery" data-field="placeQuery" data-enter="search" placeholder="123 Main St, city" value="'+esc(T.placeQuery||'')+'" />'+
+      '<div data-act="search" class="btn" style="flex:none;background:#161512;color:#fff8ec;border-radius:12px;display:flex;align-items:center;padding:0 16px;font-size:14px">'+(T.searching?'…':'Search')+'</div></div>'+
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">';
+    (T.searchResults||[]).forEach(function(r){
+      var chosen=T.searchChosen&&T.searchChosen.idx===r.idx;
+      h+='<div data-act="pickresult" data-id="'+r.idx+'" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;cursor:pointer;border:2.5px solid #161512;background:'+(chosen?'#dcfce7':'#fff')+';box-shadow:2px 2px 0 #161512">'+
+        '<div style="font-size:16px;flex:none">📍</div><div style="flex:1;min-width:0;font-size:12px;font-weight:600;line-height:1.35">'+esc(r.label)+'</div>'+
+        '<div style="font-size:15px;flex:none;color:'+(chosen?'#0f8a4c':'#b3a994')+'">'+(chosen?'✓':'›')+'</div></div>';
+    });
+    h+='</div>';
+    if((T.searchResults!=null&&T.searchResults.length===0)||T.searchMsg){
+      h+='<div style="font-size:12px;font-weight:600;color:#9a8f7a;text-align:center;padding:14px 0">'+esc(T.searchMsg||'No matches — try adding a city.')+'</div>';
+    }
+    h+='<div '+(canSave?'data-act="saveplace" ':'')+'class="btn" style="margin-top:18px;text-align:center;border-radius:14px;padding:14px;font-size:15px;'+
+      (canSave?'background:#2fbf71;color:#161512;box-shadow:4px 4px 0 #161512':'background:#e6dfca;border-color:#c2b8a3;color:#a89e88;cursor:default')+'">Save this place</div></div>';
+    return h;
+  }
+
+  function toastEl(){
+    if(!T.toast) return '';
+    return '<div class="toast"><div style="width:42px;height:42px;border-radius:11px;background:#fff8ec;border:2.5px solid #161512;display:flex;align-items:center;justify-content:center;font-size:23px;flex:none">'+T.toast.emoji+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:17px;font-weight:800;line-height:1">'+esc(T.toast.big)+'</div>'+
+      '<div style="font-size:12px;font-weight:600;color:#0f5132;margin-top:3px">'+esc(T.toast.sub)+'</div></div></div>';
+  }
+  function installEl(){
+    if(!T.installEvt||S.tab!=='me') return '';
+    return '<div class="install"><div style="font-size:22px">📲</div><div style="flex:1;font-size:13px;font-weight:700">Install Mehmmy on your phone</div>'+
+      '<div data-act="install" class="btn" style="background:#2fbf71;color:#161512;border-radius:10px;padding:8px 13px;font-size:13px;box-shadow:2px 2px 0 #161512">Install</div>'+
+      '<div data-act="dismissinstall" style="cursor:pointer;font-size:16px;color:#fff8ec;padding:0 4px">✕</div></div>';
+  }
+  function iosBannerEl(){
+    if(!iosShouldShow()) return '';
+    return '<div class="ios">'+
+      '<div style="display:flex;align-items:center;gap:10px"><div style="font-size:22px">📲</div>'+
+      '<div style="flex:1;font-size:13px;font-weight:700;line-height:1.4">Install Mehmmy: tap <b>Share <span class="share">↑</span></b> then <b>“Add to Home Screen”</b></div>'+
+      '<div data-act="dismissios" style="cursor:pointer;font-size:16px;color:#fff8ec;padding:0 4px">✕</div></div></div>';
+  }
+
+  // ---- render ----
+  var app=document.getElementById('app');
+  function content(){
+    switch(S.tab){
+      case 'board': return boardScreen();
+      case 'rewards': return rewardsScreen();
+      case 'activity': return activityScreen();
+      case 'me': return meScreen();
+      default: return rideScreen();
+    }
+  }
+  function render(){
+    var sc=app.querySelector('.content'); var top=sc?sc.scrollTop:0;
+    var sheet = T.sheet==='friend'?sheetFriend():(T.sheet==='place'?sheetPlace():'');
+    var focusId=document.activeElement&&document.activeElement.id;
+    app.innerHTML = statusBar()+'<div class="content">'+content()+'</div>'+tabBar()+installEl()+iosBannerEl()+toastEl()+sheet;
+    var nsc=app.querySelector('.content'); if(nsc) nsc.scrollTop=top;
+    if(focusId){ var el=document.getElementById(focusId); if(el){ el.focus(); var v=el.value; el.value=''; el.value=v; } }
+    save();
+  }
+
+  // ---- actions ----
+  function byId(arr,id){ return arr.filter(function(x){return String(x.id)===String(id);})[0]; }
+  app.addEventListener('click', function(ev){
+    var t=ev.target.closest('[data-act]'); if(!t) return;
+    var act=t.getAttribute('data-act'); var id=t.getAttribute('data-id');
+    switch(act){
+      case 'tab': S.tab=id; render(); break;
+      case 'driver': S.driverId=Number(id); render(); break;
+      case 'from': S.fromId=id; computeRoute(); break;
+      case 'to': S.toId=id; computeRoute(); break;
+      case 'sort': S.boardSort=id; render(); break;
+      case 'reward': S.rewardId=Number(id); render(); break;
+      case 'redeem': redeem(Number(id)); break;
+      case 'logride': logRide(); break;
+      case 'openfriend': T.sheet='friend'; T.friendName=''; T.friendEmoji=EMOJI[Math.floor(Math.random()*EMOJI.length)]; render(); break;
+      case 'openplace': T.sheet='place'; T.placeLabel=''; T.placeQuery=''; T.searchResults=null; T.searchChosen=null; T.searchMsg=''; render(); break;
+      case 'closesheet': T.sheet=null; render(); break;
+      case 'emoji': T.friendEmoji=id; render(); break;
+      case 'savefriend': saveFriend(); break;
+      case 'search': runSearch(); break;
+      case 'pickresult': T.searchChosen=byId((T.searchResults||[]).map(function(r){return {id:r.idx,r:r};}),id).r; render(); break;
+      case 'saveplace': savePlace(); break;
+      case 'rmfriend': removeFriend(Number(id)); break;
+      case 'rmplace': removePlace(id); break;
+      case 'install': doInstall(); break;
+      case 'dismissinstall': T.installEvt=null; render(); break;
+      case 'dismissios': try{localStorage.setItem('mehmmy.ios.dismissed','1');}catch(e){} iosDismissed=true; render(); break;
+    }
+  });
+  app.addEventListener('input', function(ev){
+    var f=ev.target.getAttribute&&ev.target.getAttribute('data-field'); if(!f) return;
+    T[f]=ev.target.value; // silent, no re-render (keeps focus while typing)
+  });
+  app.addEventListener('keydown', function(ev){
+    if(ev.key==='Enter'&&ev.target.getAttribute&&ev.target.getAttribute('data-enter')==='search'){ T.placeQuery=ev.target.value; runSearch(); }
+  });
+
+  function logRide(){
+    var fromP=byId(S.places,S.fromId), toP=byId(S.places,S.toId), driver=byId(S.friends,S.driverId);
+    if(!driver||!fromP||!toP||fromP.id===toP.id||T.routeMiles==null) return;
+    var m=T.routeMiles;
+    driver.mehmmys+=1; driver.miles=+(driver.miles+m).toFixed(1); driver.rides+=1;
+    var act={id:'r'+Date.now(),type:'ride',name:driver.name,emoji:driver.emoji,from:fromP.name,to:toP.name,miles:m,time:'Just now'};
+    S.activity.unshift(act);
+    S.totalRides+=1; S.totalMiles=+(S.totalMiles+m).toFixed(1); S.totalGiven+=1; S.driverId=null;
+    var C=cloud(); if(C) C.logRide(driver.id,m,act);
+    showToast({emoji:driver.emoji,big:'+1 '+P+'!',sub:driver.name+' banked one · '+m.toFixed(1)+' mi '+fromP.name+' → '+toP.name});
+  }
+  function redeem(n){
+    var rf=byId(S.friends,S.rewardId); var tier=TIERS.filter(function(t){return t.n===n;})[0];
+    if(!rf||!tier||rf.mehmmys<n) return;
+    rf.mehmmys-=n;
+    var act={id:'x'+Date.now(),type:'redeem',name:rf.name,emoji:rf.emoji,title:tier.title,cost:n,time:'Just now'};
+    S.activity.unshift(act);
+    var C=cloud(); if(C) C.redeem(rf.id,n,act);
+    showToast({emoji:'🎉',big:'Redeemed!',sub:rf.name+' grabbed '+tier.title+' (−'+n+')'});
+  }
+  function saveFriend(){
+    var name=(T.friendName||'').trim(); if(!name) return;
+    var color=PALETTE[S.friends.length%PALETTE.length];
+    var f={id:Date.now(),name:name,mehmmys:0,miles:0,rides:0,emoji:T.friendEmoji,color:color};
+    S.friends.push(f);
+    var C=cloud(); if(C) C.addFriend(f);
+    T.sheet=null; showToast({emoji:T.friendEmoji,big:name+' joined!',sub:'Tag them next time they drive you'});
+  }
+  function removeFriend(id){
+    S.friends=S.friends.filter(function(f){return f.id!==id;});
+    if(S.rewardId===id) S.rewardId=(S.friends[0]||{}).id;
+    if(S.driverId===id) S.driverId=null;
+    var C=cloud(); if(C) C.removeFriend(id);
+    render();
+  }
+  function savePlace(){
+    if(!T.searchChosen) return;
+    var r=T.searchChosen; var short=r.label.split(',')[0];
+    var name=((T.placeLabel||'').trim()||short).slice(0,22);
+    var pid='p'+Date.now();
+    var p={id:pid,name:name,lat:r.lat,lon:r.lon};
+    S.places.push(p);
+    var C=cloud(); if(C) C.addPlace(p);
+    T.sheet=null; S.toId=pid;
+    showToast({emoji:'📍',big:name+' saved',sub:'Real distances now mapped via OpenStreetMap'});
+    computeRoute();
+  }
+  function removePlace(id){
+    S.places=S.places.filter(function(p){return p.id!==id;});
+    if(S.fromId===id) S.fromId=(S.places[0]||{}).id;
+    if(S.toId===id) S.toId=(S.places[1]||S.places[0]||{}).id;
+    var C=cloud(); if(C) C.removePlace(id);
+    computeRoute();
+  }
+
+  // ---- iOS install banner ----
+  var iosDismissed=false;
+  try{ iosDismissed = localStorage.getItem('mehmmy.ios.dismissed')==='1'; }catch(e){}
+  function iosShouldShow(){
+    if(iosDismissed) return false;
+    var ua=navigator.userAgent||'';
+    var isIOS=/iphone|ipad|ipod/i.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+    if(!isIOS) return false;
+    var standalone = window.navigator.standalone===true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    return !standalone;
+  }
+
+  // ---- PWA: install prompt + service worker ----
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); T.installEvt=e; render(); });
+  window.addEventListener('appinstalled', function(){ T.installEvt=null; render(); });
+  function doInstall(){ if(!T.installEvt) return; T.installEvt.prompt(); T.installEvt.userChoice.finally(function(){ T.installEvt=null; render(); }); }
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./service-worker.js').catch(function(){});
+    });
+  }
+
+  // ---- cloud sync (Firebase, optional) ----
+  function bootCloud(){
+    var C=window.MehmmyCloud;
+    if(!C||!C.enabled){ cloudMode=false; return; }
+    cloudMode=true;
+    C.init(S, function(data){
+      if(data.friends){ S.friends=data.friends.slice();
+        if(!byId(S.friends,S.rewardId)) S.rewardId=(S.friends[0]||{}).id;
+        if(S.driverId!=null && !byId(S.friends,S.driverId)) S.driverId=null; }
+      if(data.places){ S.places=data.places.slice();
+        if(!byId(S.places,S.fromId)) S.fromId=(S.places[0]||{}).id;
+        if(!byId(S.places,S.toId)) S.toId=(S.places[1]||S.places[0]||{}).id; }
+      if(data.activity){ S.activity=data.activity.slice(); }
+      render();
+    });
+    render();
+  }
+  if(window.MehmmyCloud && window.MehmmyCloud.__ready) bootCloud();
+  else window.addEventListener('mehmmy-cloud-ready', bootCloud);
+  window.addEventListener('mehmmy-cloud-status', function(){ render(); });
+
+  // ---- boot ----
+  load();
+  render();
+  computeRoute();
+})();
+</script>
+</body>
+</html>
