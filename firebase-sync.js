@@ -7,8 +7,24 @@
 import { firebaseConfig, GROUP_ID } from "./firebase-config.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
-const Cloud = { enabled: false, status: "off", groupId: GROUP_ID, __ready: false };
+
+// Effective group = in-app code (localStorage) if set, else the file default.
+function sanitizeGroup(s){ return String(s||"").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40); }
+let storedGroup = "";
+try { storedGroup = localStorage.getItem("mehmmy.group") || ""; } catch (e) {}
+const EFFECTIVE_GROUP = sanitizeGroup(storedGroup) || GROUP_ID;
+
+const Cloud = { enabled: false, status: "off", groupId: EFFECTIVE_GROUP, __ready: false };
 window.MehmmyCloud = Cloud;
+
+// Switch crews from inside the app (friends join by typing a code). Reloads to re-sync.
+Cloud.setGroup = function (code) {
+  const g = sanitizeGroup(code);
+  if (!g) return false;
+  try { localStorage.setItem("mehmmy.group", g); } catch (e) {}
+  location.reload();
+  return true;
+};
 
 function ready() {
   Cloud.__ready = true;
@@ -42,13 +58,15 @@ async function initCloud() {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
-  const base = "groups/" + GROUP_ID;
+  const base = "groups/" + EFFECTIVE_GROUP;
   const fcol = () => collection(db, base + "/friends");
   const pcol = () => collection(db, base + "/places");
   const acol = () => collection(db, base + "/activity");
   const fref = (id) => doc(db, base + "/friends/" + id);
   const pref = (id) => doc(db, base + "/places/" + id);
   const aref = (id) => doc(db, base + "/activity/" + id);
+  const rcol = () => collection(db, base + "/requests");
+  const rref = (id) => doc(db, base + "/requests/" + id);
 
   const cache = { friends: null, places: null, activity: null };
   let onData = null;
@@ -96,6 +114,19 @@ async function initCloud() {
       emit();
     });
 
+    // Ride requests — ping every other device the moment one lands.
+    let myClient = ""; try { myClient = localStorage.getItem("mehmmy.client") || ""; } catch (e) {}
+    const bootTs = Date.now();
+    onSnapshot(query(rcol(), orderBy("ts", "desc"), limit(20)), (s) => {
+      s.docChanges().forEach((ch) => {
+        if (ch.type !== "added") return;
+        const d = ch.doc.data();
+        if (d.by === myClient) return;        // don't notify the sender
+        if ((d.ts || 0) < bootTs) return;     // ignore history on first load
+        if (Cloud.onIncomingRequest) Cloud.onIncomingRequest(Object.assign({ id: ch.doc.id }, d));
+      });
+    });
+
     setStatus("synced");
   };
 
@@ -106,6 +137,10 @@ async function initCloud() {
   Cloud.redeem = (friendId, n, act) => {
     updateDoc(fref(friendId), { mehmmys: increment(-n) }).catch(() => {});
     setDoc(aref(act.id), Object.assign({ ts: Date.now() }, stripId(act))).catch(() => {});
+  };
+  Cloud.sendRequest = (req, act) => {
+    setDoc(rref(req.id), { by: req.by, name: req.name, from: req.from, to: req.to, when: req.when, ts: Date.now() }).catch(() => {});
+    if (act) setDoc(aref(act.id), Object.assign({ ts: Date.now() }, stripId(act))).catch(() => {});
   };
   Cloud.addFriend = (f) => setDoc(fref(f.id), { name: f.name, emoji: f.emoji, color: f.color, mehmmys: 0, miles: 0, rides: 0, order: Number(f.id) || Date.now() }).catch(() => {});
   Cloud.removeFriend = (id) => deleteDoc(fref(id)).catch(() => {});
