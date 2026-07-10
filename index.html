@@ -30,13 +30,13 @@
     position:relative;display:flex;flex-direction:column;
     width:100%;max-width:460px;margin:0 auto;
     height:100dvh;min-height:100dvh;
+    padding-top:env(safe-area-inset-top);
     background:#fff8ec;overflow:hidden;
   }
   @media(min-width:480px){
     body{display:flex;align-items:center;justify-content:center;padding:24px}
     #app{height:min(860px,94dvh);border-radius:34px;border:2.5px solid #161512;box-shadow:0 30px 60px -18px rgba(0,0,0,.5)}
   }
-  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 12px) 24px 6px;font-size:13px;font-weight:700;flex:none}
   .content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
   .content::-webkit-scrollbar{display:none}
   .content{scrollbar-width:none}
@@ -77,26 +77,65 @@
 <script>
 "use strict";
 (function(){
-  var KEY = 'mehmmy.app.v2';
+  var KEY = 'mehmmy.pwa.v1';
   var PALETTE = ['#FDBA74','#C4B5FD','#F9A8D4','#7DD3FC','#FCD34D','#86EFAC','#FDE68A','#FCA5A5','#A7F3D0','#FBCFE8','#BFDBFE','#DDD6FE'];
   var EMOJI = ['🦄','🐧','🐙','🐢','🦝','🐰','🐶','🐯','🦋','🐳','🦔','🦅'];
-  var USER = 'Mehmet', P = 'Mehmmy', Pp = 'Mehmmys';
+  var USER = 'Mehmed', P = 'Mehmmy', Pp = 'Mehmmys';
+  var ADMIN_KEY = 'mehmmy2026';
+  var isAdmin = false;
+  try{ isAdmin = localStorage.getItem('mehmmy.admin')==='1'; }catch(e){}
   function plur(n){ return n===1 ? P : Pp; }
   function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+  function timeAgo(ts){
+    if(!ts) return 'Just now';
+    var diff=Date.now()-ts;
+    if(diff<60000) return 'Just now';
+    var m=Math.floor(diff/60000); if(m<60) return m+'m ago';
+    var h=Math.floor(diff/3600000); if(h<24) return h+'h ago';
+    var d=Math.floor(diff/86400000); if(d===1) return 'Yesterday'; if(d<7) return d+'d ago';
+    var dt=new Date(ts); return dt.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  }
+
+  // ---- notifications ----
+  var CLIENT=(function(){ try{ var c=localStorage.getItem('mehmmy.client'); if(!c){ c='c'+Math.random().toString(36).slice(2,9); localStorage.setItem('mehmmy.client',c); } return c; }catch(e){ return 'c'+Date.now(); } })();
+  function canNotify(){ return typeof Notification!=='undefined'; }
+  function notifyState(){ return canNotify()?Notification.permission:'unsupported'; }
+  function requestNotify(cb){
+    if(!canNotify()){ cb&&cb('unsupported'); return; }
+    if(Notification.permission==='granted'){ render(); cb&&cb('granted'); return; }
+    try{ Notification.requestPermission().then(function(p){ render(); cb&&cb(p); }); }catch(e){ cb&&cb('default'); }
+  }
+  function notify(title, body, opts){
+    if(!canNotify()||Notification.permission!=='granted') return false;
+    opts=opts||{};
+    var payload={ body:body, icon:'./icons/icon-192.png', badge:'./icons/icon-192.png', tag:opts.tag||'mehmmy', renotify:true, data:opts.data||{} };
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.ready.then(function(reg){ reg.showNotification(title,payload); }).catch(function(){ try{ new Notification(title,payload); }catch(e){} });
+    } else { try{ new Notification(title,payload); }catch(e){} }
+    return true;
+  }
 
   function defaults(){
     return {
-      tab:'ride', driverId:null, fromId:'home', toId:'work', boardSort:'mehmmys', rewardId:1,
+      tab:'ride', rideMode:'request', reqWhen:'now', driverId:null, fromId:'home', toId:'work', boardSort:'mehmmys', rewardId:1,
       friends:[
+        {id:1782148312514,name:'Amanda',mehmmys:0,miles:0,rides:0,emoji:'🐢',color:'#FDBA74'},
+        {id:1782148324695,name:'Shannon',mehmmys:1,miles:5.5,rides:1,emoji:'🦄',color:'#C4B5FD'},
+        {id:1782148527950,name:'LeighAnn',mehmmys:0,miles:0,rides:0,emoji:'🐯',color:'#F9A8D4'},
+        {id:1782158727531,name:'Leo',mehmmys:0,miles:0,rides:0,emoji:'🐶',color:'#7DD3FC'},
+        {id:1782158749126,name:'Deanna',mehmmys:0,miles:0,rides:0,emoji:'🦋',color:'#FCD34D'},
+        {id:1782165672336,name:'Manan',mehmmys:1,miles:5.3,rides:1,emoji:'🐳',color:'#86EFAC'}
       ],
       places:[
         {id:'home',name:'Home',lat:40.7270,lon:-74.3174},
         {id:'work',name:'Work',lat:40.7818,lon:-74.2691},
-        {id:'airport',name:'EWR',lat:40.6895,lon:-74.1745},
+        {id:'airport',name:'EWR',lat:40.6895,lon:-74.1745}
       ],
       activity:[
+        {id:'r1783688172315',type:'ride',name:'Manan',emoji:'🐳',from:'Home',to:'Work',miles:5.3,ts:1783688172315},
+        {id:'r1783018227257',type:'ride',name:'Shannon',emoji:'🦄',from:'Work',to:'Home',miles:5.5,ts:1783018227257}
       ],
-      totalRides:0, totalMiles:0, totalGiven:0
+      totalRides:2, totalMiles:10.8, totalGiven:2
     };
   }
 
@@ -178,13 +217,42 @@
   }
 
   // ---- screens ----
-  function statusBar(){
-    return '<div class="statusbar"><span>9:41</span><span style="display:flex;align-items:center;gap:5px"><span style="font-size:11px">📶</span><span style="width:18px;height:10px;border:1.5px solid #161512;border-radius:3px;display:inline-block;position:relative"><span style="position:absolute;inset:1.5px;width:60%;background:#161512;border-radius:1px"></span></span></span></div>';
+  var WHEN=[{id:'now',label:'Now'},{id:'morning',label:'Morning'},{id:'afternoon',label:'Afternoon'},{id:'tonight',label:'Tonight'}];
+  function whenLabel(){ var w=WHEN.filter(function(x){return x.id===S.reqWhen;})[0]; return w?w.label:'Now'; }
+  function modeToggle(){
+    var r=S.rideMode==='request';
+    return '<div style="display:flex;gap:5px;background:#fff;border:2.5px solid #161512;border-radius:14px;padding:4px;box-shadow:3px 3px 0 #161512">'+
+      '<div data-act="mode" data-id="request" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-family:\'Bricolage Grotesque\',sans-serif;font-weight:800;font-size:14px;cursor:pointer;'+(r?'background:#161512;color:#fff8ec':'color:#9a8f7a')+'">🔔 Request</div>'+
+      '<div data-act="mode" data-id="log" style="flex:1;text-align:center;padding:9px;border-radius:10px;font-family:\'Bricolage Grotesque\',sans-serif;font-weight:800;font-size:14px;cursor:pointer;'+(!r?'background:#161512;color:#fff8ec':'color:#9a8f7a')+'">✅ Log</div></div>';
   }
-
+  function requestBody(){
+    var fromP=byId(S.places,S.fromId), toP=byId(S.places,S.toId), same=S.fromId===S.toId;
+    var h='<h1 class="scr" style="margin-top:18px">Need a ride?</h1><div class="sub">Ping the whole crew — first to claim it drives you. 🔔</div>';
+    h+=routeChips('FROM','from',S.fromId,'#2fbf71');
+    h+=routeChips('TO','to',S.toId,'#ff6b4a');
+    h+='<div style="font-size:11px;font-weight:700;color:#9a8f7a;margin:14px 0 7px">WHEN</div><div class="chips">';
+    WHEN.forEach(function(w){ var sel=S.reqWhen===w.id;
+      h+='<div data-act="when" data-id="'+w.id+'" style="flex:none;padding:7px 15px;border-radius:20px;cursor:pointer;font-size:13px;border:'+(sel?'2.5px solid #161512;background:#ffd23f;font-weight:700;color:#161512;box-shadow:2px 2px 0 #161512':'2px solid #161512;background:#fff8ec;font-weight:600;color:#6b6557')+'">'+w.label+'</div>';
+    });
+    h+='</div>';
+    h+='<div class="card" style="margin-top:18px;box-shadow:4px 4px 0 #161512;border-radius:18px;padding:16px">'+
+      '<div class="row" style="gap:8px"><div style="width:13px;height:13px;border-radius:50%;background:#2fbf71;border:2.5px solid #161512;flex:none"></div>'+
+      '<div style="flex:1;height:0;border-top:2.5px dashed #cabf9f"></div><div style="font-size:15px">🚗</div>'+
+      '<div style="flex:1;height:0;border-top:2.5px dashed #cabf9f"></div><div style="width:13px;height:13px;border-radius:50%;background:#ff6b4a;border:2.5px solid #161512;flex:none"></div></div>'+
+      '<div class="row" style="justify-content:space-between;margin-top:9px;gap:10px">'+
+        '<div style="font-size:13px;font-weight:800;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(fromP?fromP.name:'—')+'</div>'+
+        '<div style="font-size:13px;font-weight:800;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+esc(toP?toP.name:'—')+'</div></div></div>';
+    var n=S.friends.length, canSend=!same&&n>0;
+    var label=same?'Pick two different places':(n===0?'Add a friend first':'🔔 Send to the crew · '+whenLabel());
+    h+='<div '+(canSend?'data-act="sendreq" ':'')+'class="btn" style="margin-top:18px;text-align:center;border-radius:16px;padding:15px;font-size:16px;'+
+      (canSend?'background:#ff6b4a;color:#161512;box-shadow:4px 4px 0 #161512':'background:#e6dfca;border-color:#c2b8a3;color:#a89e88;cursor:default')+'">'+esc(label)+'</div>';
+    h+='<div style="text-align:center;font-size:11px;font-weight:600;color:#9a8f7a;margin-top:9px">'+n+(n===1?' driver':' drivers')+' get a notification</div>';
+    return h;
+  }
   function rideScreen(){
-    var h='<div class="pad">';
-    h+='<h1 class="scr">Log a ride</h1><div class="sub">Caught a lift? Tag your driver — they bank a '+P+' for it.</div>';
+    var h='<div class="pad">'+modeToggle();
+    if(S.rideMode==='request') return h+requestBody()+'</div>';
+    h+='<h1 class="scr" style="margin-top:18px">Log a ride</h1><div class="sub">Caught a lift? Tag your driver — they bank a '+P+' for it.</div>';
     h+='<div class="eyebrow" style="margin:20px 0 10px">1 · Who drove?</div><div class="hscroll">';
     S.friends.forEach(function(f){
       var sel=S.driverId===f.id;
@@ -241,34 +309,28 @@
   }
 
   function boardScreen(){
-    var isMiles=S.boardSort==='miles';
-    var sorted=S.friends.slice().sort(function(a,b){return isMiles?b.miles-a.miles:(b.mehmmys-a.mehmmys)||(b.miles-a.miles);});
-    var top=sorted[0]||{name:'—',emoji:'🙂',color:'#eee',mehmmys:0,miles:0};
+    var sorted=S.friends.slice().sort(function(a,b){return b.mehmmys-a.mehmmys;});
+    var top=sorted[0]||{name:'—',emoji:'🙂',color:'#eee',mehmmys:0};
     var h='<div class="pad"><h1 class="scr">Leaderboard</h1><div class="sub">The whole crew, ranked this month.</div>';
-    h+='<div class="row" style="gap:9px;margin-top:14px">'+sortChip(Pp,'mehmmys',!isMiles)+sortChip('Miles','miles',isMiles)+'</div>';
     h+='<div style="margin-top:16px;background:#2fbf71;border:2.5px solid #161512;border-radius:18px;padding:16px;box-shadow:5px 5px 0 #161512;position:relative">'+
       '<div style="position:absolute;top:-13px;right:16px;background:#ffd23f;border:2.5px solid #161512;border-radius:9px;font-size:11px;font-weight:700;padding:3px 10px;transform:rotate(4deg)">TOP DRIVER 👑</div>'+
       '<div class="row" style="gap:13px">'+avatar(top.emoji,top.color,54,false,'')+
       '<div style="flex:1;min-width:0"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:20px;font-weight:800">'+esc(top.name)+'</div>'+
-      '<div style="font-size:12px;font-weight:700;color:#0f5132">'+(isMiles?(top.mehmmys+' '+Pp):(top.miles.toFixed(1)+' miles driven'))+'</div></div>'+
-      '<div style="text-align:center;flex:none"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:30px;font-weight:800;line-height:1">'+(isMiles?top.miles.toFixed(1):top.mehmmys)+'</div>'+
-      '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">'+(isMiles?'mi':Pp)+'</div></div></div></div>';
+      '<div style="font-size:12px;font-weight:700;color:#0f5132">'+top.mehmmys+' '+plur(top.mehmmys)+' banked</div></div>'+
+      '<div style="text-align:center;flex:none"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:30px;font-weight:800;line-height:1">'+top.mehmmys+'</div>'+
+      '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">'+Pp+'</div></div></div></div>';
     h+='<div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">';
     sorted.slice(1).forEach(function(f,i){
       h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:9px 13px">'+
         '<div style="width:20px;font-family:\'Bricolage Grotesque\',sans-serif;font-weight:800;font-size:16px;text-align:center;flex:none">'+(i+2)+'</div>'+
         avatar(f.emoji,f.color,36,false,'')+
         '<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+esc(f.name)+'</div>'+
-        '<div style="font-size:11px;font-weight:600;color:#9a8f7a">'+(isMiles?(f.mehmmys+' '+plur(f.mehmmys)):(f.miles.toFixed(1)+' mi driven'))+'</div></div>'+
-        '<div class="row" style="align-items:baseline;gap:3px;flex:none"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-weight:800;font-size:19px">'+(isMiles?f.miles.toFixed(1):f.mehmmys)+'</div>'+
-        '<div style="font-size:10px;font-weight:700;color:#9a8f7a">'+(isMiles?'mi':plur(f.mehmmys))+'</div></div></div>';
+        '<div style="font-size:11px;font-weight:600;color:#9a8f7a">'+f.rides+(f.rides===1?' ride':' rides')+'</div></div>'+
+        '<div class="row" style="align-items:baseline;gap:3px;flex:none"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-weight:800;font-size:19px">'+f.mehmmys+'</div>'+
+        '<div style="font-size:10px;font-weight:700;color:#9a8f7a">'+plur(f.mehmmys)+'</div></div></div>';
     });
     h+='</div></div>';
     return h;
-  }
-  function sortChip(label,val,active){
-    return '<div data-act="sort" data-id="'+val+'" style="padding:8px 18px;border-radius:22px;cursor:pointer;font-size:13px;font-weight:700;border:2.5px solid #161512;'+
-      (active?'background:#161512;color:#fff8ec':'background:transparent;color:#161512')+'">'+label+'</div>';
   }
 
   var TIERS=[
@@ -316,29 +378,32 @@
     var h='<div class="pad"><h1 class="scr">Activity</h1><div class="sub">Every ride logged and reward claimed.</div>';
     h+='<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">';
     S.activity.forEach(function(a){
-      if(a.type==='ride'){
-        h+=actRow('🚗','#86efac',esc(a.name)+' drove you',esc(a.from)+' → '+esc(a.to),'+1 · '+a.miles.toFixed(1)+'mi','#0f8a4c',a.time);
+      if(a.type==='request'){
+        var rt=a.incoming?(esc(a.name||'A friend')+' needs a ride'):'You requested a ride';
+        h+=actRow(a.id,'🔔','#fed7aa',rt,esc(a.from)+' → '+esc(a.to),esc(a.when||''),'#c2410c',a.ts);
+      }else if(a.type==='ride'){
+        h+=actRow(a.id,'🚗','#86efac',esc(a.name)+' drove you','','','#0f8a4c',a.ts);
       }else{
-        h+=actRow('🎁','#fda4af',esc(a.name)+' cashed in',esc(a.title),'−'+a.cost+' '+Pp,'#c2410c',a.time);
+        h+=actRow(a.id,'🎁','#fda4af',esc(a.name)+' cashed in',esc(a.title),'−'+a.cost+' '+Pp,'#c2410c',a.ts);
       }
     });
     h+='</div></div>';
     return h;
   }
-  function actRow(icon,bg,title,sub,meta,metaColor,time){
+  function actRow(id,icon,bg,title,sub,meta,metaColor,ts){
     return '<div class="card" style="display:flex;align-items:center;gap:12px;padding:11px 13px">'+
       '<div style="width:40px;height:40px;border-radius:11px;background:'+bg+';border:2px solid #161512;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">'+icon+'</div>'+
       '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+title+'</div>'+
       '<div style="font-size:11px;font-weight:600;color:#9a8f7a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+sub+'</div></div>'+
       '<div style="text-align:right;flex:none;padding-left:6px"><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:14px;font-weight:800;color:'+metaColor+';white-space:nowrap">'+meta+'</div>'+
-      '<div style="font-size:10px;font-weight:600;color:#c2b8a3;white-space:nowrap;margin-top:2px">'+time+'</div></div></div>';
+      '<div class="row" style="gap:4px;justify-content:flex-end;margin-top:2px"><div style="font-size:10px;font-weight:600;color:#c2b8a3;white-space:nowrap">'+timeAgo(ts)+'</div>'+
+      (isAdmin?'<div data-act="edittime" data-id="'+id+'" style="cursor:pointer;font-size:11px;color:#9a8f7a">✎</div>':'')+'</div></div></div>';
   }
 
   function meScreen(){
     var topDriver=S.friends.slice().sort(function(a,b){return b.rides-a.rides;})[0]||{name:'—',emoji:'🙂'};
     var stats=[
       {label:'Rides taken',value:String(S.totalRides),icon:'🚗',bg:'#86efac'},
-      {label:'Miles ridden',value:String(Math.round(S.totalMiles)),icon:'🛣️',bg:'#7dd3fc'},
       {label:Pp+' given',value:String(S.totalGiven),icon:'⭐',bg:'#ffd23f'},
       {label:'Top driver',value:topDriver.name,icon:topDriver.emoji,bg:'#fda4af'}
     ];
@@ -355,21 +420,23 @@
         '<div style="font-size:11px;font-weight:700;color:#9a8f7a;margin-top:3px">'+s.label+'</div></div>';
     });
     h+='</div>';
+    h+=notifCard();
     h+='<div class="row" style="justify-content:space-between;margin:22px 0 10px;gap:8px"><div class="row" style="gap:8px"><div class="eyebrow">Your crew · '+S.friends.length+'</div>'+syncBadge()+'</div>'+
-      '<div data-act="openfriend" class="btn" style="background:#2fbf71;border-radius:20px;padding:5px 13px;font-size:12px;color:#161512;box-shadow:2px 2px 0 #161512">＋ Add friend</div></div>';
+      '<div class="row" style="gap:7px">'+adminChip()+
+      '<div data-act="openfriend" class="btn" style="background:#2fbf71;border-radius:20px;padding:5px 13px;font-size:12px;color:#161512;box-shadow:2px 2px 0 #161512">＋ Add friend</div></div></div>';
     h+='<div style="display:flex;flex-direction:column;gap:9px">';
     S.friends.forEach(function(f){
       h+='<div class="card" style="display:flex;align-items:center;gap:11px;border-radius:13px;padding:8px 12px">'+
         avatar(f.emoji,f.color,34,false,'')+
         '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+esc(f.name)+'</div>'+
-        '<div style="font-size:11px;font-weight:600;color:#9a8f7a">'+f.mehmmys+' '+plur(f.mehmmys)+' · '+f.miles.toFixed(0)+' mi</div></div>'+
-        '<div data-act="rmfriend" data-id="'+f.id+'" style="width:28px;height:28px;border-radius:8px;border:2px solid #161512;background:#fff8ec;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;flex:none">✕</div></div>';
+        '<div style="font-size:11px;font-weight:600;color:#9a8f7a">'+f.mehmmys+' '+plur(f.mehmmys)+' · '+f.rides+(f.rides===1?' ride':' rides')+'</div></div>'+
+        (isAdmin?'<div data-act="rmfriend" data-id="'+f.id+'" style="width:28px;height:28px;border-radius:8px;border:2px solid #161512;background:#fff8ec;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;flex:none">✕</div>':'')+'</div>';
     });
     h+='</div>';
     h+='<div class="eyebrow" style="margin:22px 0 10px">Saved places · '+S.places.length+'</div><div class="chips">';
     S.places.forEach(function(p){
       h+='<div style="display:flex;align-items:center;gap:7px;padding:7px 11px 7px 13px;border-radius:20px;border:2.5px solid #161512;background:#fff;font-size:13px;font-weight:700;box-shadow:2px 2px 0 #161512">'+
-        '<span>'+esc(p.name)+'</span><span data-act="rmplace" data-id="'+p.id+'" style="cursor:pointer;color:#9a8f7a">✕</span></div>';
+        '<span>'+esc(p.name)+'</span>'+(isAdmin?'<span data-act="rmplace" data-id="'+p.id+'" style="cursor:pointer;color:#9a8f7a">✕</span>':'')+'</div>';
     });
     h+='<div data-act="openplace" style="padding:7px 13px;border-radius:20px;border:2.5px dashed #161512;background:#fff8ec;font-size:13px;font-weight:700;color:#161512;cursor:pointer">＋ place</div></div>';
     var outstanding=S.friends.reduce(function(s,f){return s+f.mehmmys;},0);
@@ -380,6 +447,9 @@
     return h;
   }
 
+  function adminChip(){
+    return '<div data-act="'+(isAdmin?'adminlock':'openadmin')+'" class="row" style="gap:4px;border:2px solid #161512;border-radius:20px;padding:5px 10px;background:'+(isAdmin?'#ffd23f':'#fff')+';font-size:11px;font-weight:800;cursor:pointer">'+(isAdmin?'🔓 Admin':'🔒 Admin')+'</div>';
+  }
   function syncLine(){
     var C=window.MehmmyCloud;
     if(cloudMode && C){
@@ -396,6 +466,21 @@
     var color = on?'#2fbf71':(connecting?'#ffd23f':'#c2b8a3');
     var label = on?'Live':(connecting?'Sync…':'Local');
     return '<div style="display:flex;align-items:center;gap:5px;border:2px solid #161512;border-radius:20px;padding:3px 9px;background:#fff;font-size:11px;font-weight:800"><span style="width:7px;height:7px;border-radius:50%;background:'+color+'"></span>'+label+'</div>';
+  }
+  function notifCard(){
+    if(!canNotify()) return '';
+    var st=Notification.permission;
+    if(st==='granted'){
+      return '<div style="margin-top:16px;background:#fff;border:2.5px solid #161512;border-radius:15px;padding:13px 14px;box-shadow:3px 3px 0 #161512;display:flex;align-items:center;gap:11px">'+
+        '<div style="font-size:22px">🔔</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">Ride alerts are on</div>'+
+        '<div style="font-size:11px;font-weight:600;color:#9a8f7a">You\'ll get pinged the moment a friend requests a ride.</div></div>'+
+        '<div style="width:26px;height:26px;border-radius:50%;background:#2fbf71;border:2px solid #161512;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none">✓</div></div>';
+    }
+    var denied=st==='denied';
+    return '<div style="margin-top:16px;background:'+(denied?'#f3efe2':'#ffd23f')+';border:2.5px solid #161512;border-radius:15px;padding:13px 14px;box-shadow:3px 3px 0 #161512;display:flex;align-items:center;gap:11px">'+
+      '<div style="font-size:22px">🔔</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+(denied?'Notifications are blocked':'Turn on ride alerts')+'</div>'+
+      '<div style="font-size:11px;font-weight:600;color:#6b6557">'+(denied?'Enable them in your browser settings to get pinged.':'Get a heads-up the moment a friend needs a ride.')+'</div></div>'+
+      (denied?'':'<div data-act="enablenotif" class="btn" style="background:#161512;color:#fff8ec;border-radius:10px;padding:8px 13px;font-size:13px;flex:none">Enable</div>')+'</div>';
   }
   function tabBar(){
     var defs=[['ride','🚗','Ride'],['board','🏆','Board'],['rewards','🎁','Rewards'],['activity','🧾','Activity'],['me','🙂','Me']];
@@ -427,6 +512,26 @@
     h+='<div '+(canSave?'data-act="savefriend" ':'')+'class="btn" style="margin-top:20px;text-align:center;border-radius:14px;padding:14px;font-size:15px;'+
       (canSave?'background:#2fbf71;color:#161512;box-shadow:4px 4px 0 #161512':'background:#e6dfca;border-color:#c2b8a3;color:#a89e88;cursor:default')+'">Add to crew</div></div>';
     return h;
+  }
+  function toDatetimeLocal(ts){
+    var d=new Date(ts||Date.now()); var p=function(n){return (n<10?'0':'')+n;};
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
+  }
+  function sheetEditTime(){
+    return '<div class="overlay" data-act="closesheet"></div><div class="sheet">'+
+      '<div class="grab"></div><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800">Adjust timestamp</div>'+
+      '<div style="font-size:12px;font-weight:500;color:#6b6557;margin:4px 0 16px">Set when this actually happened.</div>'+
+      '<input class="mh" id="editTs" data-field="editTs" type="datetime-local" value="'+esc(T.editTs||'')+'" />'+
+      '<div data-act="savetime" class="btn" style="margin-top:18px;text-align:center;border-radius:14px;padding:14px;font-size:15px;background:#2fbf71;color:#161512;box-shadow:4px 4px 0 #161512">Save</div></div>';
+  }
+  function sheetAdmin(){
+    var err=T.adminErr;
+    return '<div class="overlay" data-act="closesheet"></div><div class="sheet">'+
+      '<div class="grab"></div><div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800">🔒 Admin</div>'+
+      '<div style="font-size:12px;font-weight:500;color:#6b6557;margin:4px 0 16px">Enter the keyphrase to add or remove crew and places.</div>'+
+      '<input class="mh" id="adminPass" data-field="adminPass" data-enter="adminunlock" type="password" placeholder="Keyphrase" value="'+esc(T.adminPass||'')+'" />'+
+      (err?'<div style="font-size:12px;font-weight:700;color:#c2410c;margin-top:9px">'+esc(err)+'</div>':'')+
+      '<div data-act="adminunlock" class="btn" style="margin-top:18px;text-align:center;border-radius:14px;padding:14px;font-size:15px;background:#161512;color:#fff8ec;box-shadow:4px 4px 0 #161512">Unlock</div></div>';
   }
   function sheetPlace(){
     var canSave=!!T.searchChosen;
@@ -487,9 +592,9 @@
   }
   function render(){
     var sc=app.querySelector('.content'); var top=sc?sc.scrollTop:0;
-    var sheet = T.sheet==='friend'?sheetFriend():(T.sheet==='place'?sheetPlace():'');
+    var sheet = T.sheet==='friend'?sheetFriend():(T.sheet==='place'?sheetPlace():(T.sheet==='admin'?sheetAdmin():(T.sheet==='edittime'?sheetEditTime():'')));
     var focusId=document.activeElement&&document.activeElement.id;
-    app.innerHTML = statusBar()+'<div class="content">'+content()+'</div>'+tabBar()+installEl()+iosBannerEl()+toastEl()+sheet;
+    app.innerHTML = '<div class="content" style="padding-top:8px">'+content()+'</div>'+tabBar()+installEl()+iosBannerEl()+toastEl()+sheet;
     var nsc=app.querySelector('.content'); if(nsc) nsc.scrollTop=top;
     if(focusId){ var el=document.getElementById(focusId); if(el){ el.focus(); var v=el.value; el.value=''; el.value=v; } }
     save();
@@ -502,15 +607,29 @@
     var act=t.getAttribute('data-act'); var id=t.getAttribute('data-id');
     switch(act){
       case 'tab': S.tab=id; render(); break;
+      case 'mode': S.rideMode=id; render(); break;
+      case 'when': S.reqWhen=id; render(); break;
       case 'driver': S.driverId=Number(id); render(); break;
       case 'from': S.fromId=id; computeRoute(); break;
       case 'to': S.toId=id; computeRoute(); break;
-      case 'sort': S.boardSort=id; render(); break;
       case 'reward': S.rewardId=Number(id); render(); break;
       case 'redeem': redeem(Number(id)); break;
       case 'logride': logRide(); break;
-      case 'openfriend': T.sheet='friend'; T.friendName=''; T.friendEmoji=EMOJI[Math.floor(Math.random()*EMOJI.length)]; render(); break;
-      case 'openplace': T.sheet='place'; T.placeLabel=''; T.placeQuery=''; T.searchResults=null; T.searchChosen=null; T.searchMsg=''; render(); break;
+      case 'sendreq': sendRequest(); break;
+      case 'enablenotif': requestNotify(); break;
+      case 'openfriend': if(!isAdmin){ T.sheet='admin'; T.adminPass=''; T.adminErr=''; render(); break; } T.sheet='friend'; T.friendName=''; T.friendEmoji=EMOJI[Math.floor(Math.random()*EMOJI.length)]; render(); break;
+      case 'openplace': if(!isAdmin){ T.sheet='admin'; T.adminPass=''; T.adminErr=''; render(); break; } T.sheet='place'; T.placeLabel=''; T.placeQuery=''; T.searchResults=null; T.searchChosen=null; T.searchMsg=''; render(); break;
+      case 'adminunlock':
+        if((T.adminPass||'')===ADMIN_KEY){ isAdmin=true; try{localStorage.setItem('mehmmy.admin','1');}catch(e){} T.sheet=null; render(); }
+        else{ T.adminErr='Wrong keyphrase.'; render(); }
+        break;
+      case 'adminlock': isAdmin=false; try{localStorage.setItem('mehmmy.admin','0');}catch(e){} render(); break;
+      case 'openadmin': T.sheet='admin'; T.adminPass=''; T.adminErr=''; render(); break;
+      case 'edittime': if(!isAdmin) break; T.sheet='edittime'; T.editId=id; var ea=byId(S.activity,id); T.editTs=toDatetimeLocal(ea&&ea.ts); render(); break;
+      case 'savetime':
+        var ta=byId(S.activity,T.editId);
+        if(ta&&T.editTs){ var parsed=new Date(T.editTs).getTime(); if(!isNaN(parsed)) ta.ts=parsed; }
+        T.sheet=null; render(); break;
       case 'closesheet': T.sheet=null; render(); break;
       case 'emoji': T.friendEmoji=id; render(); break;
       case 'savefriend': saveFriend(); break;
@@ -530,14 +649,32 @@
   });
   app.addEventListener('keydown', function(ev){
     if(ev.key==='Enter'&&ev.target.getAttribute&&ev.target.getAttribute('data-enter')==='search'){ T.placeQuery=ev.target.value; runSearch(); }
+    if(ev.key==='Enter'&&ev.target.getAttribute&&ev.target.getAttribute('data-enter')==='adminunlock'){
+      if((ev.target.value||'')===ADMIN_KEY){ isAdmin=true; try{localStorage.setItem('mehmmy.admin','1');}catch(e){} T.sheet=null; render(); }
+      else{ T.adminErr='Wrong keyphrase.'; render(); }
+    }
   });
 
+  function sendRequest(){
+    var fromP=byId(S.places,S.fromId), toP=byId(S.places,S.toId);
+    if(!fromP||!toP||fromP.id===toP.id||!S.friends.length) return;
+    var wl=whenLabel();
+    var act={id:'q'+Date.now(),type:'request',from:fromP.name,to:toP.name,when:wl,ts:Date.now()};
+    S.activity.unshift(act);
+    var req={id:act.id,by:CLIENT,name:USER,from:fromP.name,to:toP.name,when:wl,ts:Date.now()};
+    var C=cloud(); if(C&&C.sendRequest) C.sendRequest(req,act);
+    var fire=function(){ notify('🔔 Ride request sent', USER+': '+fromP.name+' → '+toP.name+' · '+wl+'. Crew notified.', {tag:act.id}); };
+    if(notifyState()==='default') requestNotify(function(p){ if(p==='granted') fire(); });
+    else fire();
+    showToast({emoji:'🔔',big:'Request sent!',sub:'Crew pinged · '+fromP.name+' → '+toP.name+' · '+wl});
+    render();
+  }
   function logRide(){
     var fromP=byId(S.places,S.fromId), toP=byId(S.places,S.toId), driver=byId(S.friends,S.driverId);
     if(!driver||!fromP||!toP||fromP.id===toP.id||T.routeMiles==null) return;
     var m=T.routeMiles;
     driver.mehmmys+=1; driver.miles=+(driver.miles+m).toFixed(1); driver.rides+=1;
-    var act={id:'r'+Date.now(),type:'ride',name:driver.name,emoji:driver.emoji,from:fromP.name,to:toP.name,miles:m,time:'Just now'};
+    var act={id:'r'+Date.now(),type:'ride',name:driver.name,emoji:driver.emoji,from:fromP.name,to:toP.name,miles:m,ts:Date.now()};
     S.activity.unshift(act);
     S.totalRides+=1; S.totalMiles=+(S.totalMiles+m).toFixed(1); S.totalGiven+=1; S.driverId=null;
     var C=cloud(); if(C) C.logRide(driver.id,m,act);
@@ -547,12 +684,13 @@
     var rf=byId(S.friends,S.rewardId); var tier=TIERS.filter(function(t){return t.n===n;})[0];
     if(!rf||!tier||rf.mehmmys<n) return;
     rf.mehmmys-=n;
-    var act={id:'x'+Date.now(),type:'redeem',name:rf.name,emoji:rf.emoji,title:tier.title,cost:n,time:'Just now'};
+    var act={id:'x'+Date.now(),type:'redeem',name:rf.name,emoji:rf.emoji,title:tier.title,cost:n,ts:Date.now()};
     S.activity.unshift(act);
     var C=cloud(); if(C) C.redeem(rf.id,n,act);
     showToast({emoji:'🎉',big:'Redeemed!',sub:rf.name+' grabbed '+tier.title+' (−'+n+')'});
   }
   function saveFriend(){
+    if(!isAdmin) return;
     var name=(T.friendName||'').trim(); if(!name) return;
     var color=PALETTE[S.friends.length%PALETTE.length];
     var f={id:Date.now(),name:name,mehmmys:0,miles:0,rides:0,emoji:T.friendEmoji,color:color};
@@ -561,6 +699,7 @@
     T.sheet=null; showToast({emoji:T.friendEmoji,big:name+' joined!',sub:'Tag them next time they drive you'});
   }
   function removeFriend(id){
+    if(!isAdmin) return;
     S.friends=S.friends.filter(function(f){return f.id!==id;});
     if(S.rewardId===id) S.rewardId=(S.friends[0]||{}).id;
     if(S.driverId===id) S.driverId=null;
@@ -568,6 +707,7 @@
     render();
   }
   function savePlace(){
+    if(!isAdmin) return;
     if(!T.searchChosen) return;
     var r=T.searchChosen; var short=r.label.split(',')[0];
     var name=((T.placeLabel||'').trim()||short).slice(0,22);
@@ -580,6 +720,7 @@
     computeRoute();
   }
   function removePlace(id){
+    if(!isAdmin) return;
     S.places=S.places.filter(function(p){return p.id!==id;});
     if(S.fromId===id) S.fromId=(S.places[0]||{}).id;
     if(S.toId===id) S.toId=(S.places[1]||S.places[0]||{}).id;
@@ -615,6 +756,10 @@
     var C=window.MehmmyCloud;
     if(!C||!C.enabled){ cloudMode=false; return; }
     cloudMode=true;
+    C.onIncomingRequest=function(r){
+      notify('🚗 '+(r.name||'A friend')+' needs a ride', (r.from||'?')+' → '+(r.to||'?')+' · '+(r.when||'')+' — first to claim drives!', {tag:'req-'+r.id});
+      if(!byId(S.activity,r.id)){ S.activity.unshift({id:r.id,type:'request',from:r.from,to:r.to,when:r.when,ts:Date.now(),incoming:true,name:r.name}); render(); }
+    };
     C.init(S, function(data){
       if(data.friends){ S.friends=data.friends.slice();
         if(!byId(S.friends,S.rewardId)) S.rewardId=(S.friends[0]||{}).id;
