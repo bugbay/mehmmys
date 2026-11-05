@@ -9,3 +9,9 @@ ui-debug.log
 functions/.env*
 functions/.secret.local
 .superpowers/
+
+# real configs and keys stay local
+legacy-pwa/firebase-config.js
+GoogleService-Info.plist
+*.p8
+.env
