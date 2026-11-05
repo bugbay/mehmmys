@@ -1,8 +1,116 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function crewDoc(crewId) { return get(/databases/$(database)/documents/crews/$(crewId)).data; }
+    function memberPath(crewId, uid) { return /databases/$(database)/documents/crews/$(crewId)/members/$(uid); }
+    function isMember(crewId) { return signedIn() && exists(memberPath(crewId, me())); }
+    function isOwner(crewId) { return signedIn() && crewDoc(crewId).ownerUid == me(); }
+    function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function onlyChanged(keys) { return changedKeys().hasOnly(keys); }
+    function isShortString(v, max) { return v is string && v.size() > 0 && v.size() <= max; }
+
+    match /users/{userId} {
+      allow read: if signedIn() && me() == userId;
+      allow create: if signedIn() && me() == userId && !('ownedCrewId' in request.resource.data);
+      allow update: if signedIn() && me() == userId && !changedKeys().hasAny(['ownedCrewId']);
+    }
+
+    match /inviteCodes/{code} {
       allow read, write: if false;
+    }
+
+    match /crews/{crewId} {
+      allow read: if isMember(crewId);
+      allow update: if isOwner(crewId)
+        && onlyChanged(['name', 'rewardTiers'])
+        && isShortString(request.resource.data.name, 40)
+        && request.resource.data.rewardTiers is list
+        && request.resource.data.rewardTiers.size() <= 10;
+
+      match /members/{memberId} {
+        allow read: if isMember(crewId);
+      }
+
+      match /places/{placeId} {
+        allow read: if isMember(crewId);
+        allow create, update: if isOwner(crewId) && validPlace(request.resource.data);
+        allow delete: if isOwner(crewId);
+      }
+
+      match /rides/{rideId} {
+        allow read: if isMember(crewId);
+        allow create: if isOwner(crewId) && validRide(crewId, request.resource.data);
+      }
+
+      match /requests/{requestId} {
+        allow read: if isMember(crewId);
+        allow create: if isOwner(crewId) && validRequest(request.resource.data);
+        allow update: if isMember(crewId)
+          && !isOwner(crewId)
+          && resource.data.get('claimedBy', null) == null
+          && request.resource.data.claimedBy == me()
+          && request.resource.data.claimedAt == request.time
+          && onlyChanged(['claimedBy', 'claimedAt']);
+      }
+
+      match /redemptions/{redemptionId} {
+        allow read: if isMember(crewId);
+        allow create: if isMember(crewId) && validRedemption(crewId, request.resource.data);
+        allow update: if isOwner(crewId)
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'delivered'
+          && onlyChanged(['status']);
+      }
+
+      match /activity/{activityId} {
+        allow read: if isMember(crewId);
+      }
+
+      match /routes/{routeId} {
+        allow read: if isMember(crewId);
+      }
+    }
+
+    function validPlace(d) {
+      return d.keys().hasOnly(['name', 'lat', 'lng', 'createdAt'])
+        && isShortString(d.name, 40)
+        && d.lat is number && d.lat >= -90 && d.lat <= 90
+        && d.lng is number && d.lng >= -180 && d.lng <= 180;
+    }
+
+    function validRide(crewId, d) {
+      return d.keys().hasOnly(['driverUid', 'fromPlaceId', 'fromName', 'toPlaceId', 'toName', 'meters', 'estimated', 'ts', 'createdBy'])
+        && d.keys().hasAll(['driverUid', 'fromName', 'toName', 'meters', 'ts', 'createdBy'])
+        && d.createdBy == me()
+        && d.driverUid != me()
+        && exists(memberPath(crewId, d.driverUid))
+        && d.meters is int && d.meters > 0
+        && isShortString(d.fromName, 40) && isShortString(d.toName, 40)
+        && d.ts == request.time;
+    }
+
+    function validRequest(d) {
+      return d.keys().hasOnly(['byUid', 'fromName', 'toName', 'when', 'ts', 'claimedBy', 'claimedAt'])
+        && d.byUid == me()
+        && isShortString(d.fromName, 40) && isShortString(d.toName, 40)
+        && d.when in ['now', 'morning', 'afternoon', 'tonight']
+        && d.ts == request.time
+        && d.get('claimedBy', null) == null
+        && d.get('claimedAt', null) == null;
+    }
+
+    function validRedemption(crewId, d) {
+      return d.keys().hasOnly(['driverUid', 'tierId', 'title', 'cost', 'ts', 'status'])
+        && d.driverUid == me()
+        && d.status == 'pending'
+        && d.cost is int && d.cost > 0
+        && d.cost <= get(memberPath(crewId, me())).data.mehmmys
+        && d.tierId is string
+        && isShortString(d.title, 60)
+        && d.ts == request.time;
     }
   }
 }
