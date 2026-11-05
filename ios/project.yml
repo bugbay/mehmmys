@@ -38,12 +38,26 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Mehmmy.app/Mehmmy"
         BUNDLE_LOADER: "$(TEST_HOST)"
+  MehmmyUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: MehmmyUITests
+    dependencies:
+      - target: Mehmmy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ozankilic.mehmmys.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Mehmmy
 schemes:
   Mehmmy:
     build:
       targets:
         Mehmmy: all
         MehmmyTests: [test]
+        MehmmyUITests: [test]
     test:
       targets:
         - MehmmyTests
+        - MehmmyUITests

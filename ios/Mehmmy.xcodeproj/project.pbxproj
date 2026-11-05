@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0479AD17DE441806534C57AE /* RideFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC6F9C28D2FA393998C2A8CA /* RideFlowUITests.swift */; };
 		0C0327985327260A867BFCD0 /* AddPlaceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D1E74F5CD33278A6443117 /* AddPlaceSheet.swift */; };
 		105E4872BEDCEA72A08A00DB /* BricolageGrotesque.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 84F406D60F38FBE603FFE039 /* BricolageGrotesque.ttf */; };
 		110C556BF869054ABD68CB64 /* Distance.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFD8D1251D825D58F251BF13 /* Distance.swift */; };
@@ -33,6 +34,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		74439E1F15C23AD893AF3889 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 978B54625665F87FB81DAE5B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AAEEF3849F0C2DE98130EE36;
+			remoteInfo = Mehmmy;
+		};
 		78D7A62E0FF74B328A8D2213 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 978B54625665F87FB81DAE5B /* Project object */;
@@ -56,6 +64,7 @@
 		4E45791D85992D8896C286D4 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		84F406D60F38FBE603FFE039 /* BricolageGrotesque.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = BricolageGrotesque.ttf; sourceTree = "<group>"; };
 		A1D1E74F5CD33278A6443117 /* AddPlaceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPlaceSheet.swift; sourceTree = "<group>"; };
+		AC6F9C28D2FA393998C2A8CA /* RideFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideFlowUITests.swift; sourceTree = "<group>"; };
 		ADC3566C8D8E0CC107AACAE0 /* MehmmyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MehmmyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B7FA98A4ABD603E32F523980 /* MeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeView.swift; sourceTree = "<group>"; };
 		C676E47F95672B8D5F2F7F4D /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -69,6 +78,7 @@
 		EC456D810595096D8CDC4C89 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		F2A3B1413749339B151B6A8F /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 		F5813070C40E1C10FAB61C11 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		FEAE1099E19575257405E3BA /* MehmmyUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MehmmyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -89,6 +99,14 @@
 				C676E47F95672B8D5F2F7F4D /* Models.swift */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		30A6BB7108ECBEE7A3A0FF4C /* MehmmyUITests */ = {
+			isa = PBXGroup;
+			children = (
+				AC6F9C28D2FA393998C2A8CA /* RideFlowUITests.swift */,
+			);
+			path = MehmmyUITests;
 			sourceTree = "<group>";
 		};
 		57244295A69F6383177236DB /* Ride */ = {
@@ -138,6 +156,7 @@
 			children = (
 				685DF768AA641CB327131F9B /* Mehmmy */,
 				B9E1616E2801CCC8713AF940 /* MehmmyTests */,
+				30A6BB7108ECBEE7A3A0FF4C /* MehmmyUITests */,
 				A2033E4F5478BB0E1DEBFC4D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -169,6 +188,7 @@
 			children = (
 				0782CD15DBC66F3806BE7632 /* Mehmmy.app */,
 				ADC3566C8D8E0CC107AACAE0 /* MehmmyTests.xctest */,
+				FEAE1099E19575257405E3BA /* MehmmyUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -227,6 +247,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		07C9FF50EE244F496A264F4C /* MehmmyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E68AC09181CD9AC93B9B8ECA /* Build configuration list for PBXNativeTarget "MehmmyUITests" */;
+			buildPhases = (
+				E4FEB3B084281DB58213B679 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				76C7A46970DD0E1313A3BAE7 /* PBXTargetDependency */,
+			);
+			name = MehmmyUITests;
+			packageProductDependencies = (
+			);
+			productName = MehmmyUITests;
+			productReference = FEAE1099E19575257405E3BA /* MehmmyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		0B653326114D3A7C8A8C5A83 /* MehmmyTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 66ECE3EDBE2F369766DEA47A /* Build configuration list for PBXNativeTarget "MehmmyTests" */;
@@ -272,6 +310,11 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					07C9FF50EE244F496A264F4C = {
+						DevelopmentTeam = Z59KW29SGF;
+						ProvisioningStyle = Automatic;
+						TestTargetID = AAEEF3849F0C2DE98130EE36;
+					};
 					0B653326114D3A7C8A8C5A83 = {
 						DevelopmentTeam = Z59KW29SGF;
 						ProvisioningStyle = Automatic;
@@ -298,6 +341,7 @@
 			targets = (
 				AAEEF3849F0C2DE98130EE36 /* Mehmmy */,
 				0B653326114D3A7C8A8C5A83 /* MehmmyTests */,
+				07C9FF50EE244F496A264F4C /* MehmmyUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -350,6 +394,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E4FEB3B084281DB58213B679 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0479AD17DE441806534C57AE /* RideFlowUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -358,9 +410,48 @@
 			target = AAEEF3849F0C2DE98130EE36 /* Mehmmy */;
 			targetProxy = 78D7A62E0FF74B328A8D2213 /* PBXContainerItemProxy */;
 		};
+		76C7A46970DD0E1313A3BAE7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AAEEF3849F0C2DE98130EE36 /* Mehmmy */;
+			targetProxy = 74439E1F15C23AD893AF3889 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		4F478AB98BB79BF9025CA93D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ozankilic.mehmmys.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Mehmmy;
+			};
+			name = Debug;
+		};
+		550647D914D1F569E03E6469 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ozankilic.mehmmys.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Mehmmy;
+			};
+			name = Release;
+		};
 		5928236BA9CD81ECBD63CE22 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -584,6 +675,15 @@
 			buildConfigurations = (
 				7AAC5A9066B41E489B7B0630 /* Debug */,
 				CE217DD4F1AFDA33149E812F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E68AC09181CD9AC93B9B8ECA /* Build configuration list for PBXNativeTarget "MehmmyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4F478AB98BB79BF9025CA93D /* Debug */,
+				550647D914D1F569E03E6469 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

@@ -35,6 +35,20 @@
                ReferencedContainer = "container:Mehmmy.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "07C9FF50EE244F496A264F4C"
+               BuildableName = "MehmmyUITests.xctest"
+               BlueprintName = "MehmmyUITests"
+               ReferencedContainer = "container:Mehmmy.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -61,6 +75,17 @@
                BlueprintIdentifier = "0B653326114D3A7C8A8C5A83"
                BuildableName = "MehmmyTests.xctest"
                BlueprintName = "MehmmyTests"
+               ReferencedContainer = "container:Mehmmy.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "07C9FF50EE244F496A264F4C"
+               BuildableName = "MehmmyUITests.xctest"
+               BlueprintName = "MehmmyUITests"
                ReferencedContainer = "container:Mehmmy.xcodeproj">
             </BuildableReference>
          </TestableReference>
