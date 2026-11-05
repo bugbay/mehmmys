@@ -15,3 +15,5 @@ legacy-pwa/firebase-config.js
 GoogleService-Info.plist
 *.p8
 .env
+xcuserdata/
+*.xcuserstate
