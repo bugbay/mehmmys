@@ -1,5 +1,5 @@
 node_modules/
-lib/
+/functions/lib/
 *.log
 .DS_Store
 firebase-debug.log
