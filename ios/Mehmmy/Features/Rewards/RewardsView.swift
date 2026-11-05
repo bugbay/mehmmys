@@ -11,7 +11,12 @@ struct RewardsView: View {
                 CrewSwitcher()
                 ScreenTitle(title: "Rewards", subtitle: state.isOwner ? "What your drivers can cash their Mehmmys in for. 🎟️" : "Cash in the Mehmmys you've banked. 🎟️")
             }
-            if state.isOwner { ownerHeader } else if let me = state.myMember { wallet(for: me, title: "Your wallet") }
+            if state.isOwner && state.crew.drivers.isEmpty {
+                EmptyCard(icon: "🎟️", title: "Set your rewards", subtitle: "These are what your drivers can cash their Mehmmys in for. Edit them now, invite drivers next.") {
+                    InviteButton()
+                }
+                .padding(.top, 10)
+            } else if state.isOwner { ownerHeader } else if let me = state.myMember { wallet(for: me, title: "Your wallet") }
             tiers
         }
         .sheet(isPresented: $editing) { TierEditor() }

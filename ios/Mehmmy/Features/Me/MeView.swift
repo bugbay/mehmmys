@@ -20,16 +20,43 @@ struct MeView: View {
             }
             settings(unit: $state.me.unit).padding(.top, 22)
         }
+        .onChange(of: state.me.unit) { _, unit in state.remote?.setUnit(unit) }
         .sheet(isPresented: $addingPlace) { AddPlaceSheet() }
         .alert("Join a crew", isPresented: $joining) {
             TextField("Invite code", text: $joinCode).textInputAutocapitalization(.characters)
-            Button("Join") { state.show(Toast(emoji: "🤝", title: "Joined!", subtitle: "Preview only — joining goes live with the backend")) }
+            Button("Join") {
+                if let remote = state.remote {
+                    let code = joinCode
+                    Task {
+                        do {
+                            try await remote.joinCrew(code: code)
+                            state.show(Toast(emoji: "🤝", title: "Joined!", subtitle: "You're in \(state.crew.name)"))
+                        } catch {
+                            state.show(Toast(emoji: "⚠️", title: "Couldn't join", subtitle: error.localizedDescription))
+                        }
+                    }
+                } else {
+                    state.show(Toast(emoji: "🤝", title: "Joined!", subtitle: "Sample mode"))
+                }
+            }
             Button("Cancel", role: .cancel) {}
         }
         .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Delete account and my crew", role: .destructive) { state.onboarded = false }
+            Button(state.ownedCrew == nil ? "Delete my account" : "Delete account and my crew", role: .destructive) {
+                if let remote = state.remote {
+                    Task {
+                        do { try await remote.deleteAccount() } catch {
+                            state.show(Toast(emoji: "⚠️", title: "Couldn't delete", subtitle: error.localizedDescription))
+                        }
+                    }
+                } else {
+                    state.phase = .signedOut
+                }
+            }
         } message: {
-            Text("This removes your profile, your crew and everyone's Mehmmys in it. It can't be undone.")
+            Text(state.ownedCrew == nil
+                 ? "This removes your profile and your Mehmmys in every crew you drive for. It can't be undone."
+                 : "This removes your profile, your crew and everyone's Mehmmys in it. It can't be undone.")
         }
     }
 
@@ -206,7 +233,7 @@ struct MeView: View {
                     .padding(.horizontal, 13).padding(.vertical, 13)
                     Divider().overlay(Palette.locked)
                 }
-                Button { state.onboarded = false } label: {
+                Button { if let remote = state.remote { remote.signOut() } else { state.phase = .signedOut } } label: {
                     Text("Sign out").font(Typo.body(14, .bold)).foregroundStyle(Palette.ink).frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.horizontal, 13).padding(.vertical, 13)
@@ -217,7 +244,7 @@ struct MeView: View {
                 .padding(.horizontal, 13).padding(.vertical, 13)
             }
             .brutal(Palette.paper, radius: 15, shadow: 3)
-            Text("Mehmmy 1.0 · preview build").font(Typo.body(10)).foregroundStyle(Palette.faint).frame(maxWidth: .infinity).padding(.top, 8)
+            Text(state.isSample ? "Mehmmy 1.0 · sample data" : "Mehmmy 1.0").font(Typo.body(10)).foregroundStyle(Palette.faint).frame(maxWidth: .infinity).padding(.top, 8)
         }
     }
 }

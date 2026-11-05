@@ -5,12 +5,13 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if state.onboarded {
-                MainView()
-            } else {
-                OnboardingFlow()
+            switch state.phase {
+            case .loading: LoadingView()
+            case .ready: MainView()
+            default: OnboardingFlow()
             }
         }
+        .animation(.snappy, value: state.phase)
         .tint(Palette.ink)
     }
 }
@@ -98,5 +99,21 @@ struct Screen<Content: View>: View {
         }
         .scrollIndicators(.hidden)
         .background(Palette.cream)
+    }
+}
+
+struct LoadingView: View {
+    var body: some View {
+        ZStack {
+            Palette.cream.ignoresSafeArea()
+            VStack(spacing: 14) {
+                Text("🚗").font(.system(size: 54))
+                    .frame(width: 104, height: 104)
+                    .background(Circle().fill(Palette.yellow))
+                    .overlay(Circle().strokeBorder(Palette.ink, lineWidth: 3))
+                ProgressView().tint(Palette.ink)
+            }
+        }
+        .accessibilityLabel("Loading")
     }
 }

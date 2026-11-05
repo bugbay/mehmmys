@@ -9,6 +9,10 @@ struct ActivityView: View {
                 CrewSwitcher()
                 ScreenTitle(title: "Activity", subtitle: "Every ride, request and reward in the crew.")
             }
+            if state.crew.activity.isEmpty {
+                EmptyCard(icon: "🧾", title: "Nothing here yet", subtitle: "Rides, requests and rewards will show up here as they happen.")
+                    .padding(.top, 16)
+            }
             VStack(spacing: 10) {
                 ForEach(state.crew.activity) { item in
                     ActivityRow(row: describe(item.kind), date: item.date)

@@ -31,6 +31,9 @@ struct OwnerRideView: View {
 
     var body: some View {
         Screen {
+            if state.crew.drivers.isEmpty || places.count < 2 {
+                SetupChecklist { addingPlace = true }.padding(.bottom, 18)
+            }
             modeToggle
             if mode == .request { requestBody } else { logBody }
         }

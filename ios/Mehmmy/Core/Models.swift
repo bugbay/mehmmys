@@ -75,6 +75,8 @@ struct Crew: Identifiable {
     var activity: [ActivityItem]
 
     var drivers: [Member] { members.filter { $0.role == .driver } }
+
+    static let empty = Crew(id: "", name: "", ownerID: "", inviteCode: "", members: [], places: [], tiers: [], requests: [], activity: [])
     var owner: Member? { members.first { $0.role == .owner } }
 }
 

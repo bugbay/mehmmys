@@ -60,8 +60,10 @@ struct BoardView: View {
             }
             .padding(.top, 14)
             if ranked.isEmpty {
-                Text("No drivers yet — share your invite code from the Me tab.")
-                    .font(Typo.body(13)).foregroundStyle(Palette.subtle).padding(.top, 20)
+                EmptyCard(icon: "🏁", title: "No drivers yet", subtitle: "Once friends join your crew and drive you around, they'll race up this board.") {
+                    InviteButton()
+                }
+                .padding(.top, 20)
             }
         }
     }

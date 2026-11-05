@@ -2,6 +2,7 @@ import SwiftUI
 import Observation
 
 // in-memory app state with sample data; firebase repositories replace this in phase 2
+@MainActor
 @Observable
 final class AppState {
     static let sampleOwnedCrewID = "crew-mehmed"
@@ -12,19 +13,24 @@ final class AppState {
     var currentCrewID: String
     var tab: Tab = .ride
     var toast: Toast?
-    var onboarded: Bool
+    var phase: AppPhase
+    var suggestedName = ""
+    var busy = false
+    weak var remote: RemoteActions?
 
-    init(me: UserProfile, crews: [Crew], currentCrewID: String, onboarded: Bool = true) {
+    init(me: UserProfile, crews: [Crew], currentCrewID: String, phase: AppPhase = .ready) {
         self.me = me
         self.crews = crews
         self.currentCrewID = currentCrewID
-        self.onboarded = onboarded
+        self.phase = phase
     }
+
+    var isSample: Bool { remote == nil }
 
     // MARK: derived
 
     private var crewIndex: Int { crews.firstIndex { $0.id == currentCrewID } ?? 0 }
-    var crew: Crew { crews[crewIndex] }
+    var crew: Crew { crews.isEmpty ? Crew.empty : crews[crewIndex] }
     var isOwner: Bool { crew.ownerID == me.id }
     var myMember: Member? { crew.members.first { $0.id == me.id } }
     var ownedCrew: Crew? { crews.first { $0.ownerID == me.id } }
@@ -37,6 +43,13 @@ final class AppState {
     func logRide(driverID: String, from: Place, to: Place, meters: Int) -> Bool {
         guard isOwner, from.id != to.id, meters > 0,
               let i = crew.members.firstIndex(where: { $0.id == driverID && $0.role == .driver }) else { return false }
+        if let remote {
+            let driver = crew.members[i]
+            remote.logRide(crewID: crew.id, driverID: driverID, from: from, to: to, meters: meters)
+            remote.requestPushPermission()
+            show(Toast(emoji: driver.emoji, title: "+1 Mehmmy!", subtitle: "\(driver.name) banked one · \(Distance.format(meters, unit: me.unit)) \(from.name) → \(to.name)"))
+            return true
+        }
         var c = crew
         c.members[i].mehmmys += 1
         c.members[i].meters += meters
@@ -51,6 +64,12 @@ final class AppState {
     @discardableResult
     func sendRequest(from: Place, to: Place, when: RequestWhen) -> Bool {
         guard isOwner, from.id != to.id, !crew.drivers.isEmpty else { return false }
+        if let remote {
+            remote.sendRequest(crewID: crew.id, from: from, to: to, when: when)
+            remote.requestPushPermission()
+            show(Toast(emoji: "🔔", title: "Request sent!", subtitle: "Crew pinged · \(from.name) → \(to.name) · \(when.label)"))
+            return true
+        }
         var c = crew
         c.requests.insert(RideRequest(id: UUID().uuidString, fromName: from.name, toName: to.name, when: when, date: .now), at: 0)
         c.activity.insert(ActivityItem(id: UUID().uuidString, kind: .request(from: from.name, to: to.name, when: when), date: .now), at: 0)
@@ -64,24 +83,32 @@ final class AppState {
         let trimmed = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
         guard isOwner, !trimmed.isEmpty else { return nil }
         let place = Place(id: UUID().uuidString, name: trimmed, lat: lat, lng: lng)
-        crews[crewIndex].places.append(place)
+        if let remote {
+            remote.addPlace(crewID: crew.id, place: place)
+        } else {
+            crews[crewIndex].places.append(place)
+        }
         show(Toast(emoji: "📍", title: "\(trimmed) saved", subtitle: "Real distances now mapped"))
         return place
     }
 
     func removePlace(id: String) {
         guard isOwner else { return }
+        if let remote { remote.removePlace(crewID: crew.id, placeID: id); return }
         crews[crewIndex].places.removeAll { $0.id == id }
     }
 
     func removeMember(id: String) {
         guard isOwner, id != me.id else { return }
+        if let remote { remote.removeMember(crewID: crew.id, memberID: id); return }
         crews[crewIndex].members.removeAll { $0.id == id }
     }
 
     func updateTiers(_ tiers: [RewardTier]) {
         guard isOwner else { return }
-        crews[crewIndex].tiers = tiers.sorted { $0.cost < $1.cost }
+        let sorted = tiers.sorted { $0.cost < $1.cost }
+        if let remote { remote.updateTiers(crewID: crew.id, tiers: sorted); return }
+        crews[crewIndex].tiers = sorted
     }
 
     // MARK: driver actions
@@ -90,6 +117,11 @@ final class AppState {
     func claim(requestID: String) -> Bool {
         guard !isOwner, let i = crew.requests.firstIndex(where: { $0.id == requestID }),
               crew.requests[i].claimedBy == nil else { return false }
+        if let remote {
+            remote.claim(crewID: crew.id, requestID: requestID)
+            show(Toast(emoji: "🚗", title: "You've got it!", subtitle: "\(crew.owner?.name ?? "Your friend") knows you're coming"))
+            return true
+        }
         var c = crew
         c.requests[i].claimedBy = me.id
         let r = c.requests[i]
@@ -103,6 +135,11 @@ final class AppState {
     func redeem(tier: RewardTier) -> Bool {
         guard !isOwner, let i = crew.members.firstIndex(where: { $0.id == me.id }),
               crew.members[i].mehmmys >= tier.cost else { return false }
+        if let remote {
+            remote.redeem(crewID: crew.id, tier: tier)
+            show(Toast(emoji: "🎉", title: "Redeemed!", subtitle: "\(tier.title) (−\(tier.cost)) · \(crew.owner?.name ?? "Your friend") was notified"))
+            return true
+        }
         var c = crew
         c.members[i].mehmmys -= tier.cost
         c.activity.insert(ActivityItem(id: UUID().uuidString, kind: .redeem(driver: me.name, title: tier.title, cost: tier.cost), date: .now), at: 0)
@@ -112,7 +149,8 @@ final class AppState {
     }
 
     func leaveCurrentCrew() {
-        guard !isOwner else { return }
+        guard !isOwner, !crews.isEmpty else { return }
+        if let remote { remote.leaveCrew(crewID: crew.id); return }
         crews.remove(at: crewIndex)
         currentCrewID = crews.first?.id ?? ""
     }
@@ -120,7 +158,8 @@ final class AppState {
     func show(_ toast: Toast) {
         self.toast = toast
         let id = toast.id
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) { [weak self] in
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2.6))
             if self?.toast?.id == id { self?.toast = nil }
         }
     }
@@ -130,6 +169,23 @@ final class AppState {
 
 extension AppState {
     static func sample(onboarded: Bool = true) -> AppState {
+        let state = makeSample()
+        state.phase = onboarded ? .ready : .signedOut
+        return state
+    }
+
+    // a brand-new rider who just created a crew: no places, no drivers, default rewards
+    static func freshSample() -> AppState {
+        let me = UserProfile(id: "me", name: "Ozzy", emoji: "🦊", color: Palette.sky)
+        let crew = Crew(
+            id: sampleOwnedCrewID, name: "Ozzy's crew", ownerID: me.id, inviteCode: "OZY4KQ",
+            members: [Member(id: me.id, name: me.name, emoji: me.emoji, color: me.color, role: .owner)],
+            places: [], tiers: RewardTier.defaults, requests: [], activity: []
+        )
+        return AppState(me: me, crews: [crew], currentCrewID: crew.id)
+    }
+
+    private static func makeSample() -> AppState {
         let me = UserProfile(id: "me", name: "Mehmed", emoji: "🙋", color: Palette.sky)
         let ago = { (h: Double) in Date.now.addingTimeInterval(-h * 3600) }
 
@@ -186,6 +242,6 @@ extension AppState {
             ]
         )
 
-        return AppState(me: me, crews: [owned, driving], currentCrewID: owned.id, onboarded: onboarded)
+        return AppState(me: me, crews: [owned, driving], currentCrewID: owned.id)
     }
 }

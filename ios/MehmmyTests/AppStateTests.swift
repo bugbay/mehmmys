@@ -1,6 +1,7 @@
 import XCTest
 @testable import Mehmmy
 
+@MainActor
 final class AppStateTests: XCTestCase {
     private var state: AppState!
 
@@ -82,5 +83,17 @@ final class DistanceTests: XCTestCase {
     func testAutoFollowsLocale() {
         XCTAssertEqual(Distance.format(8530, unit: .auto, locale: Locale(identifier: "en_US")), "5.3 mi")
         XCTAssertEqual(Distance.format(8530, unit: .auto, locale: Locale(identifier: "tr_TR")), "8.5 km")
+    }
+}
+
+@MainActor
+final class FreshCrewTests: XCTestCase {
+    func testFreshOwnerStartsEmptyWithDefaultRewards() {
+        let state = AppState.freshSample()
+        XCTAssertTrue(state.isOwner)
+        XCTAssertTrue(state.crew.drivers.isEmpty)
+        XCTAssertTrue(state.crew.places.isEmpty)
+        XCTAssertEqual(state.crew.tiers, RewardTier.defaults)
+        XCTAssertFalse(state.sendRequest(from: Place(id: "a", name: "A", lat: 0, lng: 0), to: Place(id: "b", name: "B", lat: 1, lng: 1), when: .now))
     }
 }

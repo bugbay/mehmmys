@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct OnboardingFlow: View {
     @Environment(AppState.self) private var state
@@ -8,6 +9,8 @@ struct OnboardingFlow: View {
     @State private var colorIndex = 3
     @State private var crewName = ""
     @State private var code = ""
+    @State private var error: String?
+    @State private var working = false
 
     private let emojis = ["🙋", "🐢", "🦄", "🐯", "🐶", "🦋", "🐳", "🦊", "🐼", "🐸", "🦁", "🐙", "🐧", "🦖", "🐝", "🌵"]
 
@@ -21,6 +24,35 @@ struct OnboardingFlow: View {
             }
         }
         .animation(.snappy, value: step)
+        .onAppear { syncStep(); if name.isEmpty { name = state.suggestedName } }
+        .onChange(of: state.phase) { syncStep() }
+        .onChange(of: state.suggestedName) { if name.isEmpty { name = state.suggestedName } }
+    }
+
+    private func syncStep() {
+        guard !state.isSample else { return }
+        switch state.phase {
+        case .signedOut: step = 0
+        case .needsProfile: step = 1
+        case .needsCrew: step = 2
+        default: break
+        }
+        error = nil
+    }
+
+    private func run(_ work: @escaping () async throws -> Void) {
+        error = nil
+        working = true
+        Task {
+            do { try await work() } catch { self.error = error.localizedDescription }
+            working = false
+        }
+    }
+
+    @ViewBuilder private var errorLine: some View {
+        if let error {
+            Text(error).font(Typo.body(12, .bold)).foregroundStyle(Palette.burnt).multilineTextAlignment(.center)
+        }
     }
 
     // MARK: sign in
@@ -49,17 +81,32 @@ struct OnboardingFlow: View {
             .padding(.top, 22)
             Spacer()
             VStack(spacing: 14) {
-                Button { step = 1 } label: {
-                    Label("Sign in with Apple", systemImage: "apple.logo")
+                if state.isSample {
+                    Button { step = 1 } label: {
+                        Label("Sign in with Apple", systemImage: "apple.logo")
+                    }
+                    .buttonStyle(BrutalButtonStyle(fill: Palette.ink, foreground: Palette.cream))
+                } else {
+                    SignInWithAppleButton(.signIn) { request in
+                        Backend.shared?.prepareAppleRequest(request)
+                    } onCompletion: { result in
+                        run { try await Backend.shared?.completeApple(result) }
+                    }
+                    .signInWithAppleButtonStyle(.black)
+                    .frame(height: 54)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Palette.ink).offset(x: 4, y: 4))
                 }
-                .buttonStyle(BrutalButtonStyle(fill: Palette.ink, foreground: Palette.cream))
-                Button { step = 1 } label: {
+                Button {
+                    if state.isSample { step = 1 } else { run { try await state.remote?.signInWithGoogle() } }
+                } label: {
                     HStack(spacing: 8) {
                         Text("G").font(.system(size: 17, weight: .black)).foregroundStyle(Palette.coral)
                         Text("Continue with Google")
                     }
                 }
                 .buttonStyle(BrutalButtonStyle(fill: Palette.paper))
+                errorLine
                 Text("By continuing you agree to the Terms and Privacy Policy.")
                     .font(Typo.body(11)).foregroundStyle(Palette.muted).padding(.top, 4)
             }
@@ -111,14 +158,21 @@ struct OnboardingFlow: View {
                     }
                 }
                 let ok = !name.trimmingCharacters(in: .whitespaces).isEmpty
-                Button("Continue") {
-                    state.me.name = name.trimmingCharacters(in: .whitespaces)
+                Button(working ? "Saving…" : "Continue") {
+                    let clean = String(name.trimmingCharacters(in: .whitespaces).prefix(30))
+                    state.me.name = clean
                     state.me.emoji = emoji
-                    step = 2
+                    if let remote = state.remote {
+                        let hex = Palette.avatarColors[colorIndex].hexString
+                        run { try await remote.saveProfile(name: clean, emoji: emoji, colorHex: hex) }
+                    } else {
+                        step = 2
+                    }
                 }
-                .buttonStyle(BrutalButtonStyle(fill: Palette.green, enabled: ok))
-                .disabled(!ok)
+                .buttonStyle(BrutalButtonStyle(fill: Palette.green, enabled: ok && !working))
+                .disabled(!ok || working)
                 .padding(.top, 28)
+                errorLine.padding(.top, 10)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
@@ -142,8 +196,17 @@ struct OnboardingFlow: View {
                         }
                     }
                     BrutalField(placeholder: "\(name.isEmpty ? "My" : "\(name)'s") crew", text: $crewName)
-                    Button("Start my crew") { state.onboarded = true }
-                        .buttonStyle(BrutalButtonStyle(fill: Palette.coral, shadow: 3))
+                    Button(working ? "Creating…" : "Start my crew") {
+                        if let remote = state.remote {
+                            let crew = crewName.trimmingCharacters(in: .whitespaces)
+                            let fallback = "\(state.me.name.isEmpty ? "My" : "\(state.me.name)'s") crew"
+                            run { try await remote.createCrew(name: String((crew.isEmpty ? fallback : crew).prefix(40))) }
+                        } else {
+                            state.phase = .ready
+                        }
+                    }
+                    .buttonStyle(BrutalButtonStyle(fill: Palette.coral, shadow: 3, enabled: !working))
+                    .disabled(working)
                 }
                 .padding(16)
                 .brutal(Palette.paper, radius: 18, shadow: 4)
@@ -159,15 +222,20 @@ struct OnboardingFlow: View {
                     BrutalField(placeholder: "ABC234", text: $code)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
-                    Button("Join crew") {
-                        state.currentCrewID = AppState.sampleDriverCrewID
-                        state.onboarded = true
+                    Button(working ? "Joining…" : "Join crew") {
+                        if let remote = state.remote {
+                            run { try await remote.joinCrew(code: code) }
+                        } else {
+                            state.currentCrewID = AppState.sampleDriverCrewID
+                            state.phase = .ready
+                        }
                     }
-                    .buttonStyle(BrutalButtonStyle(fill: Palette.green, shadow: 3, enabled: code.count >= 6))
-                    .disabled(code.count < 6)
+                    .buttonStyle(BrutalButtonStyle(fill: Palette.green, shadow: 3, enabled: code.count >= 6 && !working))
+                    .disabled(code.count < 6 || working)
                 }
                 .padding(16)
                 .brutal(Palette.paper, radius: 18, shadow: 4)
+                errorLine.frame(maxWidth: .infinity)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
@@ -177,8 +245,11 @@ struct OnboardingFlow: View {
 
     private func stepper(_ n: Int) -> some View {
         HStack {
-            Button { step = n - 1 } label: { Image(systemName: "chevron.left").font(.system(size: 15, weight: .heavy)) }
+            Button {
+                if state.isSample { step = n - 1 } else if n == 1 { state.remote?.signOut() }
+            } label: { Image(systemName: "chevron.left").font(.system(size: 15, weight: .heavy)) }
                 .accessibilityLabel("Back")
+                .opacity(!state.isSample && n == 2 ? 0 : 1)
             Spacer()
             HStack(spacing: 6) {
                 ForEach(1...2, id: \.self) { i in

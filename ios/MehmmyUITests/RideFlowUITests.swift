@@ -5,6 +5,7 @@ final class RideFlowUITests: XCTestCase {
 
     func testSwitchingToLogModeShowsLogScreen() {
         let app = XCUIApplication()
+        app.launchArguments = ["-sample"]
         app.launch()
         app.buttons["✅ Log"].tap()
         XCTAssertTrue(app.staticTexts["Log a ride"].waitForExistence(timeout: 5))
@@ -18,6 +19,7 @@ final class RideStressUITests: XCTestCase {
 
     func testRapidModeAndRouteChangesWhileMeasuring() {
         let app = XCUIApplication()
+        app.launchArguments = ["-sample"]
         app.launch()
         for _ in 0..<4 {
             app.buttons["✅ Log"].tap()
