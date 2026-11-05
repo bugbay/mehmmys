@@ -5,7 +5,8 @@ import { DEFAULT_TIERS } from "../src/lib/defaultTiers.js";
 type Doc = Record<string, unknown>;
 
 export async function makeUser(db: Firestore, overrides: Doc = {}): Promise<{ uid: string }> {
-  const uid = (overrides.uid as string) ?? db.collection("users").doc().id;
+  const { uid: given, ...fields } = overrides;
+  const uid = (given as string) ?? db.collection("users").doc().id;
   await db.doc(`users/${uid}`).set({
     displayName: "Test",
     emoji: "🐢",
@@ -15,7 +16,7 @@ export async function makeUser(db: Firestore, overrides: Doc = {}): Promise<{ ui
     locale: "en-US",
     fcmTokens: [],
     createdAt: Timestamp.now(),
-    ...overrides,
+    ...fields,
   });
   return { uid };
 }

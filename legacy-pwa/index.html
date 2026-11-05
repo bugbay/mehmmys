@@ -81,7 +81,7 @@
   var PALETTE = ['#FDBA74','#C4B5FD','#F9A8D4','#7DD3FC','#FCD34D','#86EFAC','#FDE68A','#FCA5A5','#A7F3D0','#FBCFE8','#BFDBFE','#DDD6FE'];
   var EMOJI = ['🦄','🐧','🐙','🐢','🦝','🐰','🐶','🐯','🦋','🐳','🦔','🦅'];
   var USER = 'Mehmed', P = 'Mehmmy', Pp = 'Mehmmys';
-  var ADMIN_KEY = 'mehmmy2026';
+  var ADMIN_KEY = null; // set at runtime by firebase-sync.js from the untracked firebase-config.js
   var isAdmin = false;
   try{ isAdmin = localStorage.getItem('mehmmy.admin')==='1'; }catch(e){}
   function plur(n){ return n===1 ? P : Pp; }
@@ -620,7 +620,7 @@
       case 'openfriend': if(!isAdmin){ T.sheet='admin'; T.adminPass=''; T.adminErr=''; render(); break; } T.sheet='friend'; T.friendName=''; T.friendEmoji=EMOJI[Math.floor(Math.random()*EMOJI.length)]; render(); break;
       case 'openplace': if(!isAdmin){ T.sheet='admin'; T.adminPass=''; T.adminErr=''; render(); break; } T.sheet='place'; T.placeLabel=''; T.placeQuery=''; T.searchResults=null; T.searchChosen=null; T.searchMsg=''; render(); break;
       case 'adminunlock':
-        if((T.adminPass||'')===ADMIN_KEY){ isAdmin=true; try{localStorage.setItem('mehmmy.admin','1');}catch(e){} T.sheet=null; render(); }
+        if((ADMIN_KEY=window.MehmmyAdminKey||null) && (T.adminPass||'')===ADMIN_KEY){ isAdmin=true; try{localStorage.setItem('mehmmy.admin','1');}catch(e){} T.sheet=null; render(); }
         else{ T.adminErr='Wrong keyphrase.'; render(); }
         break;
       case 'adminlock': isAdmin=false; try{localStorage.setItem('mehmmy.admin','0');}catch(e){} render(); break;
@@ -650,7 +650,7 @@
   app.addEventListener('keydown', function(ev){
     if(ev.key==='Enter'&&ev.target.getAttribute&&ev.target.getAttribute('data-enter')==='search'){ T.placeQuery=ev.target.value; runSearch(); }
     if(ev.key==='Enter'&&ev.target.getAttribute&&ev.target.getAttribute('data-enter')==='adminunlock'){
-      if((ev.target.value||'')===ADMIN_KEY){ isAdmin=true; try{localStorage.setItem('mehmmy.admin','1');}catch(e){} T.sheet=null; render(); }
+      if((ADMIN_KEY=window.MehmmyAdminKey||null) && (ev.target.value||'')===ADMIN_KEY){ isAdmin=true; try{localStorage.setItem('mehmmy.admin','1');}catch(e){} T.sheet=null; render(); }
       else{ T.adminErr='Wrong keyphrase.'; render(); }
     }
   });

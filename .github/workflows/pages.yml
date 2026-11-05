@@ -1,0 +1,39 @@
+name: legacy-pwa-pages
+
+# deploys legacy-pwa/ to GitHub Pages; the firebase config is written from a
+# repository secret so no key lives in git
+on:
+  push:
+    branches: [main]
+    paths: ["legacy-pwa/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: write firebase config from secret
+        env:
+          CONFIG: ${{ secrets.LEGACY_FIREBASE_CONFIG_JS }}
+        run: |
+          if [ -z "$CONFIG" ]; then echo "LEGACY_FIREBASE_CONFIG_JS secret is missing"; exit 1; fi
+          printf '%s\n' "$CONFIG" > legacy-pwa/firebase-config.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: legacy-pwa
+      - id: deployment
+        uses: actions/deploy-pages@v4
