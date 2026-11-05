@@ -205,3 +205,14 @@ describe("profile validation", () => {
     }));
   });
 });
+
+describe("legacy PWA board", () => {
+  it("signed-in (anonymous) users keep read/write on groups/**", async () => {
+    const anon = env.authenticatedContext("anon-device").firestore();
+    await assertSucceeds(setDoc(doc(anon, "groups/mehmmy-crew/friends/1"), { name: "Leo", mehmmys: 1 }));
+    await assertSucceeds(getDoc(doc(anon, "groups/mehmmy-crew/friends/1")));
+  });
+  it("unauthenticated clients cannot touch groups/**", async () => {
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "groups/mehmmy-crew/friends/1")));
+  });
+});
