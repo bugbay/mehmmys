@@ -1,4 +1,6 @@
 import { Firestore, Timestamp } from "firebase-admin/firestore";
+import { generateInviteCode } from "../src/lib/inviteCode.js";
+import { DEFAULT_TIERS } from "../src/lib/defaultTiers.js";
 
 type Doc = Record<string, unknown>;
 
@@ -24,13 +26,13 @@ export async function makeCrew(
   overrides: Doc = {},
 ): Promise<{ crewId: string; inviteCode: string }> {
   const crewId = db.collection("crews").doc().id;
-  const inviteCode = (overrides.inviteCode as string) ?? "TEST01";
+  const inviteCode = (overrides.inviteCode as string) ?? generateInviteCode();
   const owner = (await db.doc(`users/${ownerUid}`).get()).data() ?? {};
   await db.doc(`crews/${crewId}`).set({
     name: "Crew",
     ownerUid,
     inviteCode,
-    rewardTiers: [],
+    rewardTiers: DEFAULT_TIERS,
     createdAt: Timestamp.now(),
     ...overrides,
   });

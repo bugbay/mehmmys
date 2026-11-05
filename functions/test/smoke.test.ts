@@ -1,5 +1,5 @@
-import { db } from "./setup";
-import { makeUser } from "./factories";
+import { db } from "./setup.js";
+import { makeUser } from "./factories.js";
 
 it("writes and reads a user through the emulator", async () => {
   const { uid } = await makeUser(db);
