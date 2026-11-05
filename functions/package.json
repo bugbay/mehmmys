@@ -1,0 +1,32 @@
+{
+  "name": "mehmmy-functions",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src test --ext .ts",
+    "test": "firebase emulators:exec --only auth,firestore --project mehmmy-rewards \"vitest run\"",
+    "test:watch": "firebase emulators:exec --only auth,firestore --project mehmmy-rewards \"vitest\"",
+    "deploy": "npm run build && firebase deploy --only functions,firestore",
+    "test:e2e": "npm run build && E2E=1 firebase emulators:exec --only auth,firestore,functions --project mehmmy-rewards \"vitest run test/e2e.test.ts\""
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^8.57.0",
+    "firebase": "^13.2.0",
+    "firebase-tools": "^15.12.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^5.1.0"
+  }
+}

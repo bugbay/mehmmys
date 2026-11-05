@@ -4,7 +4,9 @@
 //  If firebase-config.js still has placeholders, stays disabled
 //  and the app runs in local-only mode (no SDK is even loaded).
 // ============================================================
-import { firebaseConfig, GROUP_ID } from "./firebase-config.js";
+import { firebaseConfig, GROUP_ID, ADMIN_KEY } from "./firebase-config.js";
+
+window.MehmmyAdminKey = ADMIN_KEY || null;
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 

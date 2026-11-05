@@ -1,0 +1,32 @@
+name: functions-ci
+
+on:
+  pull_request:
+    paths: ["functions/**", "firestore.rules", "firestore.indexes.json", "firebase.json", ".github/workflows/functions-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["functions/**", "firestore.rules", "firestore.indexes.json", "firebase.json", ".github/workflows/functions-ci.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npx tsc -p tsconfig.test.json
+      - run: npm test
+      - run: npm run test:e2e
