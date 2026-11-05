@@ -1,0 +1,11 @@
+node_modules/
+lib/
+*.log
+.DS_Store
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
+functions/.env*
+functions/.secret.local
+.superpowers/
