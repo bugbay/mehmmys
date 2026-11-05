@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, serverTimestamp, collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { db, PROJECT_ID } from "./setup.js";
 import { makeUser, makeCrew, makeMember, makePlace } from "./factories.js";
 
@@ -136,9 +136,13 @@ describe("redemptions", () => {
   it("driver cannot redeem above balance", async () => { await assertFails(addDoc(col(DRIVER), redemption({ cost: 7 }))); });
   it("driver cannot create a delivered redemption", async () => { await assertFails(addDoc(col(DRIVER), redemption({ status: "delivered" }))); });
   it("driver cannot redeem for another driver", async () => { await assertFails(addDoc(col(DRIVER2), redemption())); });
-  it("owner can mark delivered, driver cannot", async () => {
+  it("owner can mark an applied redemption delivered, driver cannot", async () => {
+    await db.doc(`crews/${crewId}/redemptions/r1`).update({ applied: true });
     await assertFails(updateDoc(c(DRIVER, "/redemptions/r1"), { status: "delivered" }));
     await assertSucceeds(updateDoc(c(OWNER, "/redemptions/r1"), { status: "delivered" }));
+  });
+  it("owner cannot mark delivered before the balance is charged", async () => {
+    await assertFails(updateDoc(c(OWNER, "/redemptions/r1"), { status: "delivered" }));
   });
 });
 
@@ -165,5 +169,39 @@ describe("users", () => {
   it("user cannot set or clear ownedCrewId", async () => {
     await assertFails(updateDoc(doc(as(OWNER), `users/${OWNER}`), { ownedCrewId: null }));
     await assertFails(updateDoc(doc(as(DRIVER), `users/${DRIVER}`), { ownedCrewId: crewId }));
+  });
+});
+
+describe("membership lookup", () => {
+  it("a user can list their own memberships across crews", async () => {
+    const q = query(collectionGroup(as(DRIVER), "members"), where("uid", "==", DRIVER));
+    const snap = await assertSucceeds(getDocs(q));
+    expect(snap.docs.map((d) => d.ref.parent.parent?.id)).toEqual([crewId]);
+  });
+  it("a user cannot list someone else's memberships", async () => {
+    await assertFails(getDocs(query(collectionGroup(as(OUTSIDER), "members"), where("uid", "==", DRIVER))));
+  });
+});
+
+describe("profile validation", () => {
+  const me = () => doc(as(DRIVER), `users/${DRIVER}`);
+  it("accepts valid profile, unit, locale and token updates", async () => {
+    await assertSucceeds(updateDoc(me(), { displayName: "Leo", emoji: "🐶", color: "#7DD3FC", unit: "km", locale: "en_US", fcmTokens: ["a", "b"] }));
+  });
+  it("rejects an oversized name, bad color, bad unit or non-list tokens", async () => {
+    await assertFails(updateDoc(me(), { displayName: "x".repeat(31) }));
+    await assertFails(updateDoc(me(), { color: "red" }));
+    await assertFails(updateDoc(me(), { unit: "furlongs" }));
+    await assertFails(updateDoc(me(), { fcmTokens: "tok" }));
+    await assertFails(updateDoc(me(), { fcmTokens: Array.from({ length: 11 }, (_, i) => `t${i}`) }));
+  });
+  it("rejects unknown fields", async () => {
+    await assertFails(updateDoc(me(), { isAdmin: true }));
+  });
+  it("a new user can create a valid profile", async () => {
+    const ctx = env.authenticatedContext("newbie").firestore();
+    await assertSucceeds(setDoc(doc(ctx, "users/newbie"), {
+      displayName: "New", emoji: "🐸", color: "#86EFAC", unit: "auto", locale: "en_US", fcmTokens: [], createdAt: serverTimestamp(),
+    }));
   });
 });

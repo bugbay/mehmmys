@@ -14,8 +14,17 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if signedIn() && me() == userId;
-      allow create: if signedIn() && me() == userId && !('ownedCrewId' in request.resource.data);
-      allow update: if signedIn() && me() == userId && !changedKeys().hasAny(['ownedCrewId']);
+      allow create: if signedIn() && me() == userId
+        && !('ownedCrewId' in request.resource.data)
+        && validProfile(request.resource.data);
+      allow update: if signedIn() && me() == userId
+        && !changedKeys().hasAny(['ownedCrewId'])
+        && validProfile(request.resource.data);
+    }
+
+    // lets a user find every crew they belong to (legacy stubs have no uid, so stay hidden)
+    match /{path=**}/members/{memberId} {
+      allow read: if signedIn() && resource.data.uid == me();
     }
 
     match /inviteCodes/{code} {
@@ -61,6 +70,7 @@ service cloud.firestore {
         allow create: if isMember(crewId) && validRedemption(crewId, request.resource.data);
         allow update: if isOwner(crewId)
           && resource.data.status == 'pending'
+          && resource.data.get('applied', false) == true
           && request.resource.data.status == 'delivered'
           && onlyChanged(['status']);
       }
@@ -72,6 +82,18 @@ service cloud.firestore {
       match /routes/{routeId} {
         allow read: if isMember(crewId);
       }
+    }
+
+    function validProfile(d) {
+      return d.keys().hasOnly(['displayName', 'emoji', 'color', 'email', 'unit', 'locale', 'fcmTokens', 'createdAt', 'ownedCrewId'])
+        && isShortString(d.get('displayName', 'x'), 30)
+        && isShortString(d.get('emoji', 'x'), 16)
+        && d.get('color', '#000000') is string
+        && d.get('color', '#000000').matches('^#[0-9A-Fa-f]{6}$')
+        && d.get('unit', 'auto') in ['auto', 'mi', 'km']
+        && isShortString(d.get('locale', 'x'), 20)
+        && d.get('fcmTokens', []) is list
+        && d.get('fcmTokens', []).size() <= 10;
     }
 
     function validPlace(d) {
