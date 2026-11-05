@@ -1,6 +1,6 @@
 import { db } from "./setup.js";
 import { makeUser, makeCrew, makeMember } from "./factories.js";
-import { createCrew, joinCrew, leaveCrew, removeMember } from "../src/logic/crews.js";
+import { createCrew, joinCrew, leaveCrew, removeMember, linkLegacyMember } from "../src/logic/crews.js";
 import { DEFAULT_TIERS } from "../src/lib/defaultTiers.js";
 
 const rejectsWith = (p: Promise<unknown>, code: string) => expect(p).rejects.toMatchObject({ code });
@@ -115,5 +115,33 @@ describe("leaveCrew and removeMember", () => {
 
   it("owner cannot remove themselves", async () => {
     await rejectsWith(removeMember(db, ownerUid, { crewId, memberUid: ownerUid }), "failed-precondition");
+  });
+});
+
+describe("linkLegacyMember", () => {
+  let ownerUid: string, leo: string, crewId: string;
+  beforeEach(async () => {
+    ({ uid: ownerUid } = await makeUser(db));
+    ({ uid: leo } = await makeUser(db));
+    ({ crewId } = await makeCrew(db, ownerUid));
+    await makeMember(db, crewId, leo, { mehmmys: 1, meters: 500, rides: 1 });
+    await db.doc(`crews/${crewId}/members/stub1`).set({
+      legacy: true, role: "driver", displayName: "Leo", emoji: "🐶", color: "#7DD3FC", mehmmys: 4, meters: 20000, rides: 4,
+    });
+  });
+
+  it("moves the stub's counters onto the real member and deletes the stub", async () => {
+    await linkLegacyMember(db, ownerUid, { crewId, stubId: "stub1", memberUid: leo });
+    expect((await db.doc(`crews/${crewId}/members/${leo}`).get()).data()).toMatchObject({ mehmmys: 5, meters: 20500, rides: 5 });
+    expect((await db.doc(`crews/${crewId}/members/stub1`).get()).exists).toBe(false);
+  });
+
+  it("only the owner can link", async () => {
+    await rejectsWith(linkLegacyMember(db, leo, { crewId, stubId: "stub1", memberUid: leo }), "permission-denied");
+  });
+
+  it("rejects a non-legacy stub or a missing member", async () => {
+    await rejectsWith(linkLegacyMember(db, ownerUid, { crewId, stubId: leo, memberUid: leo }), "failed-precondition");
+    await rejectsWith(linkLegacyMember(db, ownerUid, { crewId, stubId: "stub1", memberUid: "ghost" }), "not-found");
   });
 });

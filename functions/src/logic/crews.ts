@@ -1,4 +1,4 @@
-import { Timestamp, type Firestore } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { fail } from "../lib/errors.js";
 import { DEFAULT_TIERS } from "../lib/defaultTiers.js";
 import { generateInviteCode, isValidInviteCode, normaliseInviteCode } from "../lib/inviteCode.js";
@@ -103,6 +103,28 @@ export async function removeMember(
   const ref = memberRef(db, input.crewId, input.memberUid);
   if (!(await ref.get()).exists) fail("not-found", "member not found");
   await ref.delete();
+}
+
+export async function linkLegacyMember(
+  db: Firestore,
+  uid: string,
+  input: { crewId: string; stubId: string; memberUid: string },
+): Promise<void> {
+  await ownerCrew(db, uid, input?.crewId);
+  const stubRef = memberRef(db, input.crewId, input.stubId);
+  const realRef = memberRef(db, input.crewId, input.memberUid);
+  await db.runTransaction(async (tx) => {
+    const [stubSnap, realSnap] = await Promise.all([tx.get(stubRef), tx.get(realRef)]);
+    if (!stubSnap.exists || stubSnap.get("legacy") !== true) fail("failed-precondition", "not a legacy member");
+    if (!realSnap.exists || realSnap.get("legacy") === true) fail("not-found", "member not found");
+    const stub = stubSnap.data() as MemberDoc;
+    tx.update(realRef, {
+      mehmmys: FieldValue.increment(stub.mehmmys ?? 0),
+      meters: FieldValue.increment(stub.meters ?? 0),
+      rides: FieldValue.increment(stub.rides ?? 0),
+    });
+    tx.delete(stubRef);
+  });
 }
 
 export { ownerCrew };
