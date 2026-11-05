@@ -89,9 +89,12 @@ No keys or credentials are committed. Each environment supplies its own:
 ## Status
 
 - [x] Design spec and backend plan
-- [x] Backend: rules, functions, push, routing, account deletion (PR #1)
-- [x] iOS preview on sample data (`ios-preview` branch)
-- [ ] iOS ↔ Firebase wiring, push, universal links
-- [ ] Marketing site, privacy policy, support page
-- [ ] TestFlight → App Store
+- [x] Backend live on `mehmmy-rewards`: rules, 14 functions, push, account deletion
+- [x] iOS app wired to Firebase: Sign in with Apple / Google, crews, rides, requests, rewards, push, first-run empty states
+- [x] Landing, privacy, terms and support pages on https://mehmmy-rewards.web.app
+- [ ] TestFlight build (internal group "Team" ready, waiting on first upload)
+- [ ] Universal links and `mehmmys.app` DNS
+- [ ] App Store submission
 - [ ] Android
+
+`ios/` runs against the live backend by default. Launch with `-sample` to use built-in sample data (used by UI tests and screenshots), add `-fresh` for a brand-new empty crew.
