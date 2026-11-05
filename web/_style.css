@@ -1,0 +1,14 @@
+:root { --cream:#fff8ec; --ink:#161512; --yellow:#ffd23f; --green:#2fbf71; --coral:#ff6b4a; --sky:#7dd3fc; --muted:#6b6557; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--cream); color:var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.55; }
+main { max-width:720px; margin:0 auto; padding:32px 16px 64px; }
+a { color:var(--ink); font-weight:700; }
+h1 { font-size:clamp(34px, 7vw, 56px); line-height:1; margin:18px 0 10px; letter-spacing:-0.02em; }
+h2 { font-size:20px; margin:28px 0 6px; }
+p, li { color:#2b2924; }
+.muted { color:var(--muted); }
+.card { background:#fff; border:2.5px solid var(--ink); border-radius:18px; box-shadow:4px 4px 0 var(--ink); padding:20px; margin:18px 0; }
+.badge { width:88px; height:88px; border-radius:50%; background:var(--yellow); border:3px solid var(--ink); display:grid; place-items:center; font-size:44px; box-shadow:5px 5px 0 var(--ink); }
+.pills { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
+.pill { border:2px solid var(--ink); border-radius:999px; padding:4px 12px; font-weight:700; font-size:14px; }
+nav { display:flex; gap:16px; flex-wrap:wrap; margin-top:40px; font-size:14px; }

@@ -27,6 +27,11 @@ service cloud.firestore {
       allow read: if signedIn() && resource.data.uid == me();
     }
 
+    // legacy PWA board (anonymous auth); retire together with legacy-pwa/
+    match /groups/{group}/{document=**} {
+      allow read, write: if signedIn();
+    }
+
     match /inviteCodes/{code} {
       allow read, write: if false;
     }
