@@ -13,6 +13,7 @@
 		0FBE3140C40ADB25C1B3A1F6 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 3FAA23919B1999918E582768 /* FirebaseFunctions */; };
 		105E4872BEDCEA72A08A00DB /* BricolageGrotesque.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 84F406D60F38FBE603FFE039 /* BricolageGrotesque.ttf */; };
 		110C556BF869054ABD68CB64 /* Distance.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFD8D1251D825D58F251BF13 /* Distance.swift */; };
+		129DD91C59787362B6CC86F3 /* RideTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49581BEF2F690D236B07E979 /* RideTracker.swift */; };
 		1F47AD8B9B26BE8C212439BF /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 673645541136C1D1CC0A659E /* FirebaseMessaging */; };
 		22C9BCE22DAE3CFB21E8D404 /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A3B1413749339B151B6A8F /* BoardView.swift */; };
 		230FD4040AC313964D264EAA /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C992CFF096158A2634A9B091 /* GoogleSignIn */; };
@@ -20,17 +21,23 @@
 		2FB2EA80735122415F120CDD /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC456D810595096D8CDC4C89 /* ActivityView.swift */; };
 		2FC57BA40CE31C59E02F3DEC /* MappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2C8346FCFA3FB0A063C8515 /* MappingTests.swift */; };
 		3F3F1848784FE7E7B6E6F48B /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5B9F3E5603F3871467DE1626 /* GoogleService-Info.plist */; };
+		56ABB23E5E0BEE036D0D5948 /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DCECEBEF2D4FCA4C3A3DCF /* ThemeTests.swift */; };
 		59E971EEC0A111B123080AE1 /* RouteMapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30557880D8DFDEECE8D381F /* RouteMapCard.swift */; };
+		671BD8EFE9546CA6B564601C /* JoinLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4546998B081B53564E3AA47 /* JoinLink.swift */; };
 		742C1BF289428EF5700B5A64 /* MeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7FA98A4ABD603E32F523980 /* MeView.swift */; };
 		766D26E2598CAB37962E99F8 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8A05DFC4CB6514432708A9A6 /* FirebaseFirestore */; };
+		7B5389A56FFD9E5FF539FDD1 /* TrackRideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7383341835BE06D747FD3B /* TrackRideView.swift */; };
 		804BC52FA4F20D80046AC4CF /* SpaceGrotesk.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CC7632A993092A31F4B4D307 /* SpaceGrotesk.ttf */; };
 		8B7E7BFB555B8A2DA71AFA8D /* RewardsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281DA131FB3BEF94197EA56B /* RewardsView.swift */; };
 		937C5ADBB4C712A271AA6846 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5813070C40E1C10FAB61C11 /* Components.swift */; };
 		93AAEC5B01C5E31A279C389B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754430398D65F2F463C45B49 /* AppDelegate.swift */; };
+		97CCD97198D4F6E6D72B9AC7 /* CoOwnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B5734D7CBC1B22E83B5A75 /* CoOwnerTests.swift */; };
+		A2C4DF78B948D73D1AD63C3C /* RideTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A06D96556036603D7A16D09 /* RideTrackerTests.swift */; };
 		A77605B6A4E9ED1DDF1124C0 /* OFL-BricolageGrotesque.txt in Resources */ = {isa = PBXBuildFile; fileRef = E7D0B2262C9B624ABA77F618 /* OFL-BricolageGrotesque.txt */; };
 		A82DB567E6A30C4FF7644024 /* MehmmyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D9728DA26C35B5B6E8E859D /* MehmmyApp.swift */; };
 		A9FE9B891BD40FB6058A14DD /* OFL-SpaceGrotesk.txt in Resources */ = {isa = PBXBuildFile; fileRef = C8A984C7521351DC622593F3 /* OFL-SpaceGrotesk.txt */; };
 		AC1DCE132960D97444BC8064 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C676E47F95672B8D5F2F7F4D /* Models.swift */; };
+		AE34C1A2D319F6C41F471EC0 /* JoinLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57B179FC9E37D02C1E80226 /* JoinLinkTests.swift */; };
 		AE767A7BB514A470EF178655 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246DA5C07500FB15F54CAB97 /* AppState.swift */; };
 		B0331344FA91064E85108D9C /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4B0D9076C33316B4B848372D /* FirebaseAuth */; };
 		B76AB2E564283EC5B3C01DE3 /* FirebaseBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F9BB51A8A5B60ABBC60BB0D /* FirebaseBackend.swift */; };
@@ -42,6 +49,7 @@
 		EC4DF862572B32EF21D14FDE /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6B77E0B6024105403B7BFFA /* OnboardingFlow.swift */; };
 		EDA10263F76BC04F1ECB2FEA /* RideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01287D391210FD0E2D1F3AE0 /* RideView.swift */; };
 		F1A6E7DFB6FA57DED06D39AC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1070BA32C8A9B920F45E043D /* RootView.swift */; };
+		F351F1C19E3F41A73C185F03 /* DriverPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DAB0D5C535D2CE31691E132 /* DriverPicker.swift */; };
 		FA125713500827A8F475352D /* RemoteActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC610340A907CD4A3C6AFC91 /* RemoteActions.swift */; };
 /* End PBXBuildFile section */
 
@@ -67,10 +75,13 @@
 		0782CD15DBC66F3806BE7632 /* Mehmmy.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mehmmy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1070BA32C8A9B920F45E043D /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		165F2A5E4164B385CE72444E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1A06D96556036603D7A16D09 /* RideTrackerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerTests.swift; sourceTree = "<group>"; };
 		1A7D499294B7B18F2FD3E6D9 /* CrewSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrewSwitcher.swift; sourceTree = "<group>"; };
+		21B5734D7CBC1B22E83B5A75 /* CoOwnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoOwnerTests.swift; sourceTree = "<group>"; };
 		246DA5C07500FB15F54CAB97 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		281DA131FB3BEF94197EA56B /* RewardsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewardsView.swift; sourceTree = "<group>"; };
 		48E3D6F60AD58846F3CC04A8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		49581BEF2F690D236B07E979 /* RideTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTracker.swift; sourceTree = "<group>"; };
 		497397411BE53205BEF8F0AA /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4AE367B0895BAF94CE833813 /* Mapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mapping.swift; sourceTree = "<group>"; };
 		4D9728DA26C35B5B6E8E859D /* MehmmyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MehmmyApp.swift; sourceTree = "<group>"; };
@@ -78,12 +89,17 @@
 		5B9F3E5603F3871467DE1626 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		5F9BB51A8A5B60ABBC60BB0D /* FirebaseBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseBackend.swift; sourceTree = "<group>"; };
 		754430398D65F2F463C45B49 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		7DAB0D5C535D2CE31691E132 /* DriverPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriverPicker.swift; sourceTree = "<group>"; };
 		84F406D60F38FBE603FFE039 /* BricolageGrotesque.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = BricolageGrotesque.ttf; sourceTree = "<group>"; };
 		8BEBAEDDCAB52F098D2CB1CB /* EmptyStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStates.swift; sourceTree = "<group>"; };
 		A1D1E74F5CD33278A6443117 /* AddPlaceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPlaceSheet.swift; sourceTree = "<group>"; };
+		A8DCECEBEF2D4FCA4C3A3DCF /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		AC6F9C28D2FA393998C2A8CA /* RideFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideFlowUITests.swift; sourceTree = "<group>"; };
 		ADC3566C8D8E0CC107AACAE0 /* MehmmyTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MehmmyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B7FA98A4ABD603E32F523980 /* MeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeView.swift; sourceTree = "<group>"; };
+		BA7383341835BE06D747FD3B /* TrackRideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackRideView.swift; sourceTree = "<group>"; };
+		C4546998B081B53564E3AA47 /* JoinLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinLink.swift; sourceTree = "<group>"; };
+		C57B179FC9E37D02C1E80226 /* JoinLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinLinkTests.swift; sourceTree = "<group>"; };
 		C676E47F95672B8D5F2F7F4D /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		C8A984C7521351DC622593F3 /* OFL-SpaceGrotesk.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "OFL-SpaceGrotesk.txt"; sourceTree = "<group>"; };
 		CC7632A993092A31F4B4D307 /* SpaceGrotesk.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SpaceGrotesk.ttf; sourceTree = "<group>"; };
@@ -132,9 +148,11 @@
 				246DA5C07500FB15F54CAB97 /* AppState.swift */,
 				DFD8D1251D825D58F251BF13 /* Distance.swift */,
 				5F9BB51A8A5B60ABBC60BB0D /* FirebaseBackend.swift */,
+				C4546998B081B53564E3AA47 /* JoinLink.swift */,
 				4AE367B0895BAF94CE833813 /* Mapping.swift */,
 				C676E47F95672B8D5F2F7F4D /* Models.swift */,
 				EC610340A907CD4A3C6AFC91 /* RemoteActions.swift */,
+				49581BEF2F690D236B07E979 /* RideTracker.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -150,8 +168,10 @@
 		57244295A69F6383177236DB /* Ride */ = {
 			isa = PBXGroup;
 			children = (
+				7DAB0D5C535D2CE31691E132 /* DriverPicker.swift */,
 				01287D391210FD0E2D1F3AE0 /* RideView.swift */,
 				E30557880D8DFDEECE8D381F /* RouteMapCard.swift */,
+				BA7383341835BE06D747FD3B /* TrackRideView.swift */,
 			);
 			path = Ride;
 			sourceTree = "<group>";
@@ -248,7 +268,11 @@
 			isa = PBXGroup;
 			children = (
 				4E45791D85992D8896C286D4 /* AppStateTests.swift */,
+				21B5734D7CBC1B22E83B5A75 /* CoOwnerTests.swift */,
+				C57B179FC9E37D02C1E80226 /* JoinLinkTests.swift */,
 				D2C8346FCFA3FB0A063C8515 /* MappingTests.swift */,
+				1A06D96556036603D7A16D09 /* RideTrackerTests.swift */,
+				A8DCECEBEF2D4FCA4C3A3DCF /* ThemeTests.swift */,
 			);
 			path = MehmmyTests;
 			sourceTree = "<group>";
@@ -428,8 +452,10 @@
 				937C5ADBB4C712A271AA6846 /* Components.swift in Sources */,
 				24A163558622313C36C559C0 /* CrewSwitcher.swift in Sources */,
 				110C556BF869054ABD68CB64 /* Distance.swift in Sources */,
+				F351F1C19E3F41A73C185F03 /* DriverPicker.swift in Sources */,
 				E443E09E5EB68DA179260890 /* EmptyStates.swift in Sources */,
 				B76AB2E564283EC5B3C01DE3 /* FirebaseBackend.swift in Sources */,
+				671BD8EFE9546CA6B564601C /* JoinLink.swift in Sources */,
 				0F23C7B80AC0E305A12758E6 /* Mapping.swift in Sources */,
 				742C1BF289428EF5700B5A64 /* MeView.swift in Sources */,
 				A82DB567E6A30C4FF7644024 /* MehmmyApp.swift in Sources */,
@@ -437,11 +463,13 @@
 				EC4DF862572B32EF21D14FDE /* OnboardingFlow.swift in Sources */,
 				FA125713500827A8F475352D /* RemoteActions.swift in Sources */,
 				8B7E7BFB555B8A2DA71AFA8D /* RewardsView.swift in Sources */,
+				129DD91C59787362B6CC86F3 /* RideTracker.swift in Sources */,
 				EDA10263F76BC04F1ECB2FEA /* RideView.swift in Sources */,
 				F1A6E7DFB6FA57DED06D39AC /* RootView.swift in Sources */,
 				59E971EEC0A111B123080AE1 /* RouteMapCard.swift in Sources */,
 				E177A93E603D1ADAFA65196D /* Theme.swift in Sources */,
 				D00900341F6EE94815B31651 /* TierEditor.swift in Sources */,
+				7B5389A56FFD9E5FF539FDD1 /* TrackRideView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -450,7 +478,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				D98E0CF909B55387D8FF2BCD /* AppStateTests.swift in Sources */,
+				97CCD97198D4F6E6D72B9AC7 /* CoOwnerTests.swift in Sources */,
+				AE34C1A2D319F6C41F471EC0 /* JoinLinkTests.swift in Sources */,
 				2FC57BA40CE31C59E02F3DEC /* MappingTests.swift in Sources */,
+				A2C4DF78B948D73D1AD63C3C /* RideTrackerTests.swift in Sources */,
+				56ABB23E5E0BEE036D0D5948 /* ThemeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -570,7 +602,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = ZS9KW29SGF;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -694,7 +726,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = ZS9KW29SGF;
 				ENABLE_NS_ASSERTIONS = NO;

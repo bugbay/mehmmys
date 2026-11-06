@@ -12,6 +12,21 @@ final class RideFlowUITests: XCTestCase {
         app.buttons["🔔 Request"].tap()
         XCTAssertTrue(app.staticTexts["Need a ride?"].waitForExistence(timeout: 5))
     }
+    func testTrackModeOffersStart() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-sample"]
+        app.launch()
+        app.buttons["📡 Track"].tap()
+        XCTAssertTrue(app.staticTexts["Track a ride"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["▶️ Start tracking"].exists)
+    }
+
+    func testDarkModeLaunches() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-sample", "-dark"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Need a ride?"].waitForExistence(timeout: 5))
+    }
 }
 
 final class RideStressUITests: XCTestCase {

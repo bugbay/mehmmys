@@ -13,6 +13,33 @@ struct RootView: View {
         }
         .animation(.snappy, value: state.phase)
         .tint(Palette.ink)
+        .preferredColorScheme(Launch.has("-dark") ? .dark : nil)
+        .alert("Join this crew?", isPresented: joinPrompt) {
+            Button("Join") { joinPending() }
+            Button("Not now", role: .cancel) { state.pendingJoinCode = nil }
+        } message: {
+            Text("Invite code \(state.pendingJoinCode ?? "")")
+        }
+    }
+
+    // only once signed in with a crew; during onboarding the code prefills the join field
+    private var joinPrompt: Binding<Bool> {
+        Binding(get: { state.phase == .ready && state.pendingJoinCode != nil },
+                set: { if !$0 { state.pendingJoinCode = nil } })
+    }
+
+    private func joinPending() {
+        guard let code = state.pendingJoinCode else { return }
+        state.pendingJoinCode = nil
+        guard let remote = state.remote else { return }
+        Task {
+            do {
+                try await remote.joinCrew(code: code)
+                state.show(Toast(emoji: "🤝", title: "Joined!", subtitle: "You're in \(state.crew.name)"))
+            } catch {
+                state.show(Toast(emoji: "⚠️", title: "Couldn't join", subtitle: error.localizedDescription))
+            }
+        }
     }
 }
 

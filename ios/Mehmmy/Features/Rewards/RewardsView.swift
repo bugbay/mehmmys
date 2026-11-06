@@ -81,7 +81,7 @@ struct RewardsView: View {
 
     private var tiers: some View {
         VStack(spacing: 11) {
-            if state.isOwner {
+            if state.isManager {
                 HStack {
                     Eyebrow(text: "Reward tiers")
                     Spacer()

@@ -4,7 +4,7 @@ struct RideView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        if state.isOwner {
+        if state.isManager {
             OwnerRideView()
         } else {
             DriverRequestsView()
@@ -12,11 +12,11 @@ struct RideView: View {
     }
 }
 
-private enum RideMode: String { case request, log }
+private enum RideMode: String { case request, log, track, drive }
 
 struct OwnerRideView: View {
     @Environment(AppState.self) private var state
-    @State private var mode: RideMode = Launch.has("-log") ? .log : .request
+    @State private var mode: RideMode = Launch.has("-log") ? .log : (Launch.has("-track") ? .track : .request)
     @State private var fromID: String?
     @State private var toID: String?
     @State private var when: RequestWhen = .now
@@ -31,11 +31,17 @@ struct OwnerRideView: View {
 
     var body: some View {
         Screen {
-            if state.crew.drivers.isEmpty || places.count < 2 {
+            if state.isOwner && (state.crew.drivers.isEmpty || places.count < 2) {
                 SetupChecklist { addingPlace = true }.padding(.bottom, 18)
             }
+            CrewSwitcher().padding(.bottom, 12)
             modeToggle
-            if mode == .request { requestBody } else { logBody }
+            switch mode {
+            case .request: requestBody
+            case .log: logBody
+            case .track: TrackRideView(addingPlace: $addingPlace)
+            case .drive: DriverRequestsList().padding(.top, 18)
+            }
         }
         .sheet(isPresented: $addingPlace) { AddPlaceSheet() }
     }
@@ -43,7 +49,9 @@ struct OwnerRideView: View {
     private var modeToggle: some View {
         HStack(spacing: 5) {
             segment("🔔 Request", .request)
+            segment("📡 Track", .track)
             segment("✅ Log", .log)
+            if !state.isOwner { segment("🚗 Drive", .drive) }
         }
         .padding(4)
         .brutal(Palette.paper, radius: 14, shadow: 3)
@@ -92,7 +100,7 @@ struct OwnerRideView: View {
             .brutal(Palette.paper, radius: 18, shadow: 4)
             .padding(.top, 18)
 
-            let n = state.crew.drivers.count
+            let n = state.rideCandidates.count
             let can = !same && n > 0
             Button {
                 if let from, let to { state.sendRequest(from: from, to: to, when: when) }
@@ -117,47 +125,13 @@ struct OwnerRideView: View {
             ScreenTitle(title: "Log a ride", subtitle: "Caught a lift? Tag your driver — they bank a Mehmmy for it.")
                 .padding(.top, 18)
             Eyebrow(text: "1 · Who drove?").padding(.top, 20).padding(.bottom, 10)
-            ScrollView(.horizontal) {
-                HStack(spacing: 13) {
-                    ForEach(state.crew.drivers) { d in
-                        let sel = driverID == d.id
-                        Button { driverID = d.id } label: {
-                            VStack(spacing: 5) {
-                                Avatar(emoji: d.emoji, color: d.color, size: 54, selected: sel)
-                                    .opacity(sel ? 1 : 0.85)
-                                Text(d.name)
-                                    .font(Typo.body(12, sel ? .heavy : .semibold))
-                                    .foregroundStyle(sel ? Palette.ink : Palette.subtle)
-                                    .lineLimit(1)
-                            }
-                            .frame(width: 60)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(d.name)
-                        .accessibilityAddTraits(sel ? .isSelected : [])
-                    }
-                    ShareLink(item: inviteURL) {
-                        VStack(spacing: 5) {
-                            Text("＋").font(.system(size: 26))
-                                .frame(width: 54, height: 54)
-                                .background(Circle().fill(Palette.cream))
-                                .overlay(Circle().strokeBorder(Palette.ink, style: StrokeStyle(lineWidth: 2.5, dash: [5, 3])))
-                            Text("Invite").font(Typo.body(12)).foregroundStyle(Palette.subtle)
-                        }
-                        .frame(width: 60)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 2)
-            }
-            .scrollIndicators(.hidden)
+            DriverPicker(selection: $driverID)
 
             Eyebrow(text: "2 · Which route?").padding(.top, 18).padding(.bottom, 10)
             routePickers
             RouteMapCard(from: from, to: to, unit: state.me.unit, meters: $meters).padding(.top, 18)
 
-            let driver = state.crew.drivers.first { $0.id == driverID }
+            let driver = state.rideCandidates.first { $0.id == driverID }
             let can = driver != nil && !same && meters != nil
             Button {
                 if let driver, let from, let to, let meters,
@@ -172,8 +146,6 @@ struct OwnerRideView: View {
             .padding(.top, 18)
         }
     }
-
-    private var inviteURL: URL { URL(string: "https://mehmmys.app/join/\(state.crew.inviteCode)")! }
 
     private var routePickers: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -200,12 +172,22 @@ struct DriverRequestsView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        let owner = state.crew.owner
-        let open = state.crew.requests.filter { $0.claimedBy == nil }
-        let claimed = state.crew.requests.filter { $0.claimedBy != nil }
         Screen {
             CrewSwitcher().padding(.bottom, 12)
-            ScreenTitle(title: "Ride requests", subtitle: "\(owner?.name ?? "Your friend") pings the crew here. First to claim it drives.")
+            ScreenTitle(title: "Ride requests", subtitle: "\(state.crew.owner?.name ?? "Your friend") pings the crew here. First to claim it drives.")
+            DriverRequestsList()
+        }
+    }
+}
+
+// open requests from others to claim, then the claimed history
+struct DriverRequestsList: View {
+    @Environment(AppState.self) private var state
+
+    var body: some View {
+        let open = state.crew.requests.filter { $0.claimedBy == nil }
+        let claimed = state.crew.requests.filter { $0.claimedBy != nil }
+        VStack(alignment: .leading, spacing: 0) {
             if open.isEmpty {
                 VStack(spacing: 8) {
                     Text("🛋️").font(.system(size: 40))
@@ -218,11 +200,13 @@ struct DriverRequestsView: View {
                 .padding(.top, 18)
             }
             ForEach(open) { r in
+                let who = state.crew.members.first { $0.id == r.byID } ?? state.crew.owner
+                let mine = r.byID == state.me.id
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 11) {
-                        Avatar(emoji: owner?.emoji ?? "🙂", color: owner?.color ?? Palette.sky, size: 42)
+                        Avatar(emoji: who?.emoji ?? "🙂", color: who?.color ?? Palette.sky, size: 42)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(owner?.name ?? "A friend") needs a ride").font(Typo.body(15, .bold))
+                            Text(mine ? "You asked for a ride" : "\(who?.name ?? "A friend") needs a ride").font(Typo.body(15, .bold))
                             Text(r.date, format: .relative(presentation: .named)).font(Typo.body(11)).foregroundStyle(Palette.muted)
                         }
                         Spacer()
@@ -231,8 +215,12 @@ struct DriverRequestsView: View {
                     }
                     RouteLine()
                     HStack { Text(r.fromName); Spacer(); Text(r.toName) }.font(Typo.body(13, .heavy))
-                    Button { state.claim(requestID: r.id) } label: { Text("I've got you 🚗") }
-                        .buttonStyle(BrutalButtonStyle(fill: Palette.green, shadow: 3))
+                    if mine {
+                        Text("Waiting for someone to claim it…").font(Typo.body(12, .bold)).foregroundStyle(Palette.muted)
+                    } else {
+                        Button { state.claim(requestID: r.id) } label: { Text("I've got you 🚗") }
+                            .buttonStyle(BrutalButtonStyle(fill: Palette.green, shadow: 3))
+                    }
                 }
                 .padding(16)
                 .brutal(Palette.paper, radius: 18, shadow: 4)

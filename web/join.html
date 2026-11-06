@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join my crew – Mehmmy</title>
+<meta name="description" content="You've been invited to a Mehmmy crew. Drive friends, bank Mehmmys, cash them in.">
+<meta name="apple-itunes-app" content="app-id=6831283898">
+<link rel="stylesheet" href="/_style.css">
+<style>
+  .code { font-size:clamp(36px, 10vw, 54px); font-weight:800; letter-spacing:.18em; background:var(--yellow); border:3px solid var(--ink); border-radius:16px; box-shadow:5px 5px 0 var(--ink); padding:10px 18px; display:inline-block; margin:8px 0 4px; }
+  .btn { display:inline-block; background:var(--green); color:var(--ink); border:2.5px solid var(--ink); border-radius:14px; box-shadow:4px 4px 0 var(--ink); padding:14px 22px; font-weight:800; text-decoration:none; margin-top:14px; }
+  .btn:focus-visible { outline:3px solid var(--ink); outline-offset:3px; }
+</style>
+</head>
+<body><main>
+  <div class="badge" aria-hidden="true">🚗</div>
+  <h1>You're invited</h1>
+  <p style="font-size:19px">A friend wants you in their Mehmmy crew. Give them a lift, bank a Mehmmy, cash it in for coffee.</p>
+  <div class="card">
+    <h2 style="margin-top:0">Your invite code</h2>
+    <div class="code" id="code" aria-live="polite">——————</div>
+    <ol>
+      <li>Get Mehmmy on your iPhone.</li>
+      <li>Sign in and pick <strong>I drive friends</strong>.</li>
+      <li>Enter the code above. Already have the app? Tap this link again and Mehmmy opens with the code filled in.</li>
+    </ol>
+    <a class="btn" href="https://apps.apple.com/app/id6831283898">Get Mehmmy on the App Store</a>
+  </div>
+  <nav><a href="/">About Mehmmy</a><a href="/privacy">Privacy</a><a href="/support">Support</a></nav>
+</main>
+<script>
+  // code comes from /join/{code}; only letters and digits are shown
+  const raw = location.pathname.split("/").filter(Boolean)[1] || "";
+  const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+  if (code.length >= 4) document.getElementById("code").textContent = code;
+</script>
+</body>
+</html>

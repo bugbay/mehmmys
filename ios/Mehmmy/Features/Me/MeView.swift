@@ -14,7 +14,7 @@ struct MeView: View {
             statsGrid.padding(.top, 16)
             alertsCard.padding(.top, 16)
             crewsSection.padding(.top, 22)
-            if state.isOwner {
+            if state.isManager {
                 membersSection.padding(.top, 22)
                 placesSection.padding(.top, 22)
             }
@@ -65,7 +65,7 @@ struct MeView: View {
             Avatar(emoji: state.me.emoji, color: Palette.cream, size: 58)
             VStack(alignment: .leading, spacing: 4) {
                 Text(state.me.name).font(Typo.display(22))
-                Text(state.isOwner ? "That's you — the one who needs the rides 😄" : "You drive for \(state.crew.owner?.name ?? "this crew") 🚗")
+                Text(state.isOwner ? "That's you — the one who needs the rides 😄" : (state.isManager ? "Co-owner of \(state.crew.name) 🤝" : "You drive for \(state.crew.owner?.name ?? "this crew") 🚗"))
                     .font(Typo.body(12)).foregroundStyle(Palette.navy)
             }
             Spacer(minLength: 0)
@@ -166,21 +166,39 @@ struct MeView: View {
     private var membersSection: some View {
         VStack(alignment: .leading, spacing: 9) {
             Eyebrow(text: "Drivers · \(state.crew.drivers.count)")
+            if state.isOwner {
+                Text("Make someone a co-owner and they can log rides, ask for rides and edit places and rewards too.")
+                    .font(Typo.body(11)).foregroundStyle(Palette.subtle)
+            }
             ForEach(state.crew.drivers) { m in
                 HStack(spacing: 11) {
                     Avatar(emoji: m.emoji, color: m.color, size: 34)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(m.name).font(Typo.body(14, .bold))
+                        HStack(spacing: 6) {
+                            Text(m.id == state.me.id ? "\(m.name) (you)" : m.name).font(Typo.body(14, .bold))
+                            if m.role == .coowner {
+                                Text("CO-OWNER").font(Typo.body(9, .heavy)).tracking(0.4)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Capsule().fill(Palette.yellow)).overlay(Capsule().strokeBorder(Palette.ink, lineWidth: 1.5))
+                            }
+                        }
                         Text("\(m.mehmmys) \(plural(m.mehmmys)) · \(m.rides) \(m.rides == 1 ? "ride" : "rides")").font(Typo.body(11)).foregroundStyle(Palette.muted)
                     }
                     Spacer()
-                    Menu {
-                        Button("Remove from crew", role: .destructive) { state.removeMember(id: m.id) }
-                    } label: {
-                        Image(systemName: "ellipsis").font(.system(size: 14, weight: .heavy)).foregroundStyle(Palette.ink)
-                            .frame(width: 30, height: 30)
+                    if state.isOwner {
+                        Menu {
+                            if m.role == .coowner {
+                                Button("Remove as co-owner") { state.setCoOwner(memberID: m.id, on: false) }
+                            } else {
+                                Button("Make co-owner") { state.setCoOwner(memberID: m.id, on: true) }
+                            }
+                            Button("Remove from crew", role: .destructive) { state.removeMember(id: m.id) }
+                        } label: {
+                            Image(systemName: "ellipsis").font(.system(size: 14, weight: .heavy)).foregroundStyle(Palette.ink)
+                                .frame(width: 30, height: 30)
+                        }
+                        .accessibilityLabel("Options for \(m.name)")
                     }
-                    .accessibilityLabel("Options for \(m.name)")
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .brutal(Palette.paper, radius: 13)

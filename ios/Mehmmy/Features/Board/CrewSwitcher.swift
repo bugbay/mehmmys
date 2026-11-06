@@ -16,10 +16,10 @@ struct CrewSwitcher: View {
             } label: {
                 HStack(spacing: 6) {
                     Text(state.crew.name).font(Typo.display(13)).lineLimit(1)
-                    Text(state.isOwner ? "YOURS" : "DRIVER")
+                    Text(state.isOwner ? "YOURS" : (state.isManager ? "CO-OWNER" : "DRIVER"))
                         .font(Typo.body(9, .heavy))
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Capsule().fill(state.isOwner ? Palette.yellow : Palette.sky))
+                        .background(Capsule().fill(state.isManager ? Palette.yellow : Palette.sky))
                         .overlay(Capsule().strokeBorder(Palette.ink, lineWidth: 1.5))
                     Image(systemName: "chevron.down").font(.system(size: 10, weight: .heavy))
                 }

@@ -25,7 +25,9 @@ struct MehmmyApp: App {
             RootView()
                 .environment(state)
                 .onAppear { applyLaunchArguments() }
-                .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
+                .onOpenURL { url in
+                    if !GIDSignIn.sharedInstance.handle(url) { state.handle(url: url) }
+                }
         }
     }
 

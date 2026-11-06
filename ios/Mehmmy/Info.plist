@@ -16,7 +16,6 @@
   <dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
   <key>UILaunchScreen</key>
   <dict><key>UIColorName</key><string>LaunchBackground</string></dict>
-  <key>UIUserInterfaceStyle</key><string>Light</string>
   <key>UISupportedInterfaceOrientations</key>
   <array><string>UIInterfaceOrientationPortrait</string></array>
   <key>UIAppFonts</key>
@@ -29,9 +28,9 @@
     </dict>
   </array>
   <key>UIBackgroundModes</key>
-  <array><string>remote-notification</string></array>
+  <array><string>remote-notification</string><string>location</string></array>
   <key>ITSAppUsesNonExemptEncryption</key><false/>
   <key>NSLocationWhenInUseUsageDescription</key>
-  <string>Used to centre the map when you save a place.</string>
+  <string>Mehmmy uses your location to measure the real distance of a ride while you track it, and to centre the map when you save a place. Your route stays on your phone; only the distance is saved.</string>
 </dict>
 </plist>

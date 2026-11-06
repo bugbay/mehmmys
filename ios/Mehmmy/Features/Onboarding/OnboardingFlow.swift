@@ -3,6 +3,7 @@ import AuthenticationServices
 
 struct OnboardingFlow: View {
     @Environment(AppState.self) private var state
+    @Environment(\.colorScheme) private var scheme
     @State private var step = 0
     @State private var name = ""
     @State private var emoji = "🙋"
@@ -92,7 +93,7 @@ struct OnboardingFlow: View {
                     } onCompletion: { result in
                         run { try await Backend.shared?.completeApple(result) }
                     }
-                    .signInWithAppleButtonStyle(.black)
+                    .signInWithAppleButtonStyle(scheme == .dark ? .white : .black)
                     .frame(height: 54)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Palette.ink).offset(x: 4, y: 4))
@@ -222,9 +223,13 @@ struct OnboardingFlow: View {
                     BrutalField(placeholder: "ABC234", text: $code)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
+                        .onAppear { if code.isEmpty, let pending = state.pendingJoinCode { code = pending } }
                     Button(working ? "Joining…" : "Join crew") {
                         if let remote = state.remote {
-                            run { try await remote.joinCrew(code: code) }
+                            run {
+                                try await remote.joinCrew(code: code)
+                                await MainActor.run { state.pendingJoinCode = nil }
+                            }
                         } else {
                             state.currentCrewID = AppState.sampleDriverCrewID
                             state.phase = .ready

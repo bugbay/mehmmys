@@ -77,7 +77,7 @@ extension RideRequest {
     static func from(id: String, data: [String: Any], date: Date) -> RideRequest? {
         guard let from = data["fromName"] as? String, let to = data["toName"] as? String,
               let when = RequestWhen(rawValue: data["when"] as? String ?? "") else { return nil }
-        return RideRequest(id: id, fromName: from, toName: to, when: when, date: date, claimedBy: data["claimedBy"] as? String)
+        return RideRequest(id: id, fromName: from, toName: to, when: when, date: date, claimedBy: data["claimedBy"] as? String, byID: data["byUid"] as? String ?? "")
     }
 }
 

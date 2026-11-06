@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["ZS9KW29SGF.com.ozankilic.mehmmys"],
+        "components": [{ "/": "/join/*", "comment": "crew invite links" }]
+      }
+    ]
+  }
+}

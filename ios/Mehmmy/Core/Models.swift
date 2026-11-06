@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum Role: String { case owner, driver }
+enum Role: String { case owner, coowner, driver }
 
 struct Member: Identifiable, Hashable {
     let id: String
@@ -48,6 +48,7 @@ struct RideRequest: Identifiable, Hashable {
     var when: RequestWhen
     var date: Date
     var claimedBy: String?
+    var byID: String = ""
 }
 
 enum ActivityKind: Hashable {
@@ -67,6 +68,7 @@ struct Crew: Identifiable {
     let id: String
     var name: String
     var ownerID: String
+    var coOwnerIDs: [String] = []
     var inviteCode: String
     var members: [Member]
     var places: [Place]
@@ -74,7 +76,10 @@ struct Crew: Identifiable {
     var requests: [RideRequest]
     var activity: [ActivityItem]
 
-    var drivers: [Member] { members.filter { $0.role == .driver } }
+    // everyone who can earn mehmmys; co-owners still drive
+    var drivers: [Member] { members.filter { $0.role != .owner } }
+
+    func isManager(_ id: String) -> Bool { ownerID == id || coOwnerIDs.contains(id) }
 
     static let empty = Crew(id: "", name: "", ownerID: "", inviteCode: "", members: [], places: [], tiers: [], requests: [], activity: [])
     var owner: Member? { members.first { $0.role == .owner } }

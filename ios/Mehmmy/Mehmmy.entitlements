@@ -8,5 +8,10 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:mehmmys.app</string>
+		<string>applinks:www.mehmmys.app</string>
+	</array>
 </dict>
 </plist>

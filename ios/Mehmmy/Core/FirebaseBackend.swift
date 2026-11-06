@@ -199,6 +199,7 @@ final class FirebaseBackend: RemoteActions {
                 id: id,
                 name: doc["name"] as? String ?? "Crew",
                 ownerID: doc["ownerUid"] as? String ?? "",
+                coOwnerIDs: doc["coOwnerUids"] as? [String] ?? [],
                 inviteCode: doc["inviteCode"] as? String ?? "",
                 members: p.members,
                 places: p.places,
@@ -257,6 +258,10 @@ final class FirebaseBackend: RemoteActions {
 
     func removeMember(crewID: String, memberID: String) {
         fire("removeMember", ["crewId": crewID, "memberUid": memberID])
+    }
+
+    func setCoOwner(crewID: String, memberID: String, on: Bool) {
+        fire("setCoOwner", ["crewId": crewID, "memberUid": memberID, "coOwner": on])
     }
 
     func setUnit(_ unit: DistanceUnit) {

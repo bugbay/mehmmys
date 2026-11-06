@@ -16,7 +16,9 @@ final class AppState {
     var phase: AppPhase
     var suggestedName = ""
     var busy = false
+    var pendingJoinCode: String?
     weak var remote: RemoteActions?
+    @ObservationIgnored lazy var tracker = RideTracker()
 
     init(me: UserProfile, crews: [Crew], currentCrewID: String, phase: AppPhase = .ready) {
         self.me = me
@@ -31,7 +33,11 @@ final class AppState {
 
     private var crewIndex: Int { crews.firstIndex { $0.id == currentCrewID } ?? 0 }
     var crew: Crew { crews.isEmpty ? Crew.empty : crews[crewIndex] }
+    // founder of the current crew
     var isOwner: Bool { crew.ownerID == me.id }
+    // founder or co-owner: can log rides, send requests, edit places and rewards
+    var isManager: Bool { crew.isManager(me.id) }
+    var rideCandidates: [Member] { crew.members.filter { $0.id != me.id } }
     var myMember: Member? { crew.members.first { $0.id == me.id } }
     var ownedCrew: Crew? { crews.first { $0.ownerID == me.id } }
 
@@ -40,9 +46,10 @@ final class AppState {
     // MARK: owner actions
 
     @discardableResult
-    func logRide(driverID: String, from: Place, to: Place, meters: Int) -> Bool {
-        guard isOwner, from.id != to.id, meters > 0,
-              let i = crew.members.firstIndex(where: { $0.id == driverID && $0.role == .driver }) else { return false }
+    // tracked rides may start and end at the same saved place (a round trip)
+    func logRide(driverID: String, from: Place, to: Place, meters: Int, tracked: Bool = false) -> Bool {
+        guard isManager, tracked || from.id != to.id, meters > 0, driverID != me.id,
+              let i = crew.members.firstIndex(where: { $0.id == driverID }) else { return false }
         if let remote {
             let driver = crew.members[i]
             remote.logRide(crewID: crew.id, driverID: driverID, from: from, to: to, meters: meters)
@@ -63,7 +70,7 @@ final class AppState {
 
     @discardableResult
     func sendRequest(from: Place, to: Place, when: RequestWhen) -> Bool {
-        guard isOwner, from.id != to.id, !crew.drivers.isEmpty else { return false }
+        guard isManager, from.id != to.id, !rideCandidates.isEmpty else { return false }
         if let remote {
             remote.sendRequest(crewID: crew.id, from: from, to: to, when: when)
             remote.requestPushPermission()
@@ -71,7 +78,7 @@ final class AppState {
             return true
         }
         var c = crew
-        c.requests.insert(RideRequest(id: UUID().uuidString, fromName: from.name, toName: to.name, when: when, date: .now), at: 0)
+        c.requests.insert(RideRequest(id: UUID().uuidString, fromName: from.name, toName: to.name, when: when, date: .now, byID: me.id), at: 0)
         c.activity.insert(ActivityItem(id: UUID().uuidString, kind: .request(from: from.name, to: to.name, when: when), date: .now), at: 0)
         crews[crewIndex] = c
         show(Toast(emoji: "🔔", title: "Request sent!", subtitle: "Crew pinged · \(from.name) → \(to.name) · \(when.label)"))
@@ -81,7 +88,7 @@ final class AppState {
     @discardableResult
     func addPlace(name: String, lat: Double, lng: Double) -> Place? {
         let trimmed = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
-        guard isOwner, !trimmed.isEmpty else { return nil }
+        guard isManager, !trimmed.isEmpty else { return nil }
         let place = Place(id: UUID().uuidString, name: trimmed, lat: lat, lng: lng)
         if let remote {
             remote.addPlace(crewID: crew.id, place: place)
@@ -93,7 +100,7 @@ final class AppState {
     }
 
     func removePlace(id: String) {
-        guard isOwner else { return }
+        guard isManager else { return }
         if let remote { remote.removePlace(crewID: crew.id, placeID: id); return }
         crews[crewIndex].places.removeAll { $0.id == id }
     }
@@ -102,10 +109,29 @@ final class AppState {
         guard isOwner, id != me.id else { return }
         if let remote { remote.removeMember(crewID: crew.id, memberID: id); return }
         crews[crewIndex].members.removeAll { $0.id == id }
+        crews[crewIndex].coOwnerIDs.removeAll { $0 == id }
+    }
+
+    @discardableResult
+    func setCoOwner(memberID: String, on: Bool) -> Bool {
+        guard isOwner, memberID != me.id,
+              let i = crew.members.firstIndex(where: { $0.id == memberID }) else { return false }
+        if let remote {
+            remote.setCoOwner(crewID: crew.id, memberID: memberID, on: on)
+            show(Toast(emoji: on ? "🤝" : "👋", title: on ? "Co-owner added" : "Co-owner removed", subtitle: crew.members[i].name))
+            return true
+        }
+        var c = crew
+        c.members[i].role = on ? .coowner : .driver
+        c.coOwnerIDs.removeAll { $0 == memberID }
+        if on { c.coOwnerIDs.append(memberID) }
+        crews[crewIndex] = c
+        show(Toast(emoji: on ? "🤝" : "👋", title: on ? "Co-owner added" : "Co-owner removed", subtitle: c.members[i].name))
+        return true
     }
 
     func updateTiers(_ tiers: [RewardTier]) {
-        guard isOwner else { return }
+        guard isManager else { return }
         let sorted = tiers.sorted { $0.cost < $1.cost }
         if let remote { remote.updateTiers(crewID: crew.id, tiers: sorted); return }
         crews[crewIndex].tiers = sorted
@@ -115,11 +141,12 @@ final class AppState {
 
     @discardableResult
     func claim(requestID: String) -> Bool {
-        guard !isOwner, let i = crew.requests.firstIndex(where: { $0.id == requestID }),
-              crew.requests[i].claimedBy == nil else { return false }
+        guard let i = crew.requests.firstIndex(where: { $0.id == requestID }),
+              crew.requests[i].byID != me.id, crew.requests[i].claimedBy == nil else { return false }
+        let requester = crew.members.first { $0.id == crew.requests[i].byID } ?? crew.owner
         if let remote {
             remote.claim(crewID: crew.id, requestID: requestID)
-            show(Toast(emoji: "🚗", title: "You've got it!", subtitle: "\(crew.owner?.name ?? "Your friend") knows you're coming"))
+            show(Toast(emoji: "🚗", title: "You've got it!", subtitle: "\(requester?.name ?? "Your friend") knows you're coming"))
             return true
         }
         var c = crew
@@ -127,7 +154,7 @@ final class AppState {
         let r = c.requests[i]
         c.activity.insert(ActivityItem(id: UUID().uuidString, kind: .claim(driver: me.name, from: r.fromName, to: r.toName), date: .now), at: 0)
         crews[crewIndex] = c
-        show(Toast(emoji: "🚗", title: "You've got it!", subtitle: "\(c.owner?.name ?? "Your friend") knows you're coming"))
+        show(Toast(emoji: "🚗", title: "You've got it!", subtitle: "\(requester?.name ?? "Your friend") knows you're coming"))
         return true
     }
 
@@ -233,8 +260,8 @@ extension AppState {
             places: [home, work, ewr],
             tiers: RewardTier.defaults,
             requests: [
-                RideRequest(id: "q1", fromName: "Millburn", toName: "EWR", when: .morning, date: ago(0.3)),
-                RideRequest(id: "q2", fromName: "Work", toName: "Home", when: .tonight, date: ago(30), claimedBy: "toprak"),
+                RideRequest(id: "q1", fromName: "Millburn", toName: "EWR", when: .morning, date: ago(0.3), byID: "bugrahan"),
+                RideRequest(id: "q2", fromName: "Work", toName: "Home", when: .tonight, date: ago(30), claimedBy: "toprak", byID: "bugrahan"),
             ],
             activity: [
                 ActivityItem(id: "b1", kind: .request(from: "Millburn", to: "EWR", when: .morning), date: ago(0.3)),

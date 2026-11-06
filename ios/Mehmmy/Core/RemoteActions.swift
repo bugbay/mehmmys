@@ -10,6 +10,7 @@ protocol RemoteActions: AnyObject {
     func addPlace(crewID: String, place: Place)
     func removePlace(crewID: String, placeID: String)
     func removeMember(crewID: String, memberID: String)
+    func setCoOwner(crewID: String, memberID: String, on: Bool)
     func updateTiers(crewID: String, tiers: [RewardTier])
     func leaveCrew(crewID: String)
     func setUnit(_ unit: DistanceUnit)
