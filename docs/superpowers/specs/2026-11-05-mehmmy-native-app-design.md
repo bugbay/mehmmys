@@ -119,7 +119,7 @@ Firebase Functions 2nd gen, TypeScript, Node 22, region `us-central1`. Firestore
 
 ### Push
 
-FCM HTTP v1 via Admin SDK → APNs (auth key `89GK7BVSQQ`, team `Z59KW29SGF`, uploaded for dev + prod). Tokens live in `users/{uid}.fcmTokens[]`; the app registers on launch and on token refresh; send errors `UNREGISTERED` / `INVALID_ARGUMENT` prune the token. Every notification carries `crewId` and a `screen` key (`ride`, `board`, `rewards`, `activity`) for routing on tap.
+FCM HTTP v1 via Admin SDK → APNs (auth key `89GK7BVSQQ`, team `ZS9KW29SGF`, uploaded for dev + prod). Tokens live in `users/{uid}.fcmTokens[]`; the app registers on launch and on token refresh; send errors `UNREGISTERED` / `INVALID_ARGUMENT` prune the token. Every notification carries `crewId` and a `screen` key (`ride`, `board`, `rewards`, `activity`) for routing on tap.
 
 ### Routing provider
 
@@ -135,7 +135,7 @@ Google Routes API from the same GCP project. Free tier verified 2026-11-05: 10,0
 
 ### Foundation
 
-Xcode 16+, Swift 5 language mode, SwiftUI, deployment target iOS 17. Bundle ID `com.ozankilic.mehmmys`, App Store Connect app `6831283898`, team `Z59KW29SGF`. Capabilities: Sign in with Apple, Push Notifications, Associated Domains (`applinks:mehmmys.app`).
+Xcode 16+, Swift 5 language mode, SwiftUI, deployment target iOS 17. Bundle ID `com.ozankilic.mehmmys`, App Store Connect app `6831283898`, team `ZS9KW29SGF`. Capabilities: Sign in with Apple, Push Notifications, Associated Domains (`applinks:mehmmys.app`).
 
 Packages (SPM): `firebase-ios-sdk` (FirebaseAuth, FirebaseFirestore, FirebaseFunctions, FirebaseMessaging), `GoogleSignIn-iOS`. MapKit + `MKLocalSearch` for place search and pins (no key, no cost). `GoogleService-Info.plist` is the one downloaded after enabling Google sign-in (contains `CLIENT_ID` / `REVERSED_CLIENT_ID`).
 
