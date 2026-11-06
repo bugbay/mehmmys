@@ -1,7 +1,7 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { crewRef, memberRef, redemptionRef } from "../lib/firestore.js";
 import type { PushSender } from "../lib/push.js";
-import type { CrewDoc, MemberDoc, RedemptionDoc, RewardTier } from "../types.js";
+import { managerUids, type CrewDoc, type MemberDoc, type RedemptionDoc, type RewardTier } from "../types.js";
 import { writeActivityOnce } from "./activity.js";
 
 export async function applyRedemptionCreated(
@@ -39,7 +39,7 @@ export async function applyRedemptionCreated(
     redemptionId,
   });
   if (!wrote) return;
-  await push.sendToUsers(db, [crew.ownerUid], {
+  await push.sendToUsers(db, managerUids(crew), {
     title: crew.name,
     body: `${member.displayName} redeemed ${tier.title} (−${tier.cost})`,
     data: { crewId, screen: "rewards" },

@@ -2,7 +2,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { crewRef, memberRef, rideRef, userRef } from "../lib/firestore.js";
 import { formatDistance, resolveUnit } from "../lib/distance.js";
 import type { PushSender } from "../lib/push.js";
-import type { CrewDoc, MemberDoc, RideDoc, UserDoc } from "../types.js";
+import { isManager, type CrewDoc, type MemberDoc, type RideDoc, type UserDoc } from "../types.js";
 import { writeActivityOnce } from "./activity.js";
 
 export async function applyRideCreated(db: Firestore, push: PushSender, crewId: string, rideId: string): Promise<void> {
@@ -19,8 +19,8 @@ export async function applyRideCreated(db: Firestore, push: PushSender, crewId: 
     const valid =
       crew !== undefined &&
       driverSnap.exists &&
-      ride.driverUid !== crew.ownerUid &&
-      ride.createdBy === crew.ownerUid &&
+      ride.driverUid !== ride.createdBy &&
+      isManager(crew, ride.createdBy) &&
       Number.isInteger(ride.meters) &&
       ride.meters > 0;
     if (!valid) {
@@ -38,9 +38,9 @@ export async function applyRideCreated(db: Firestore, push: PushSender, crewId: 
   if (!result) return;
 
   const { ride, crew, driver } = result;
-  const owner = (await memberRef(db, crewId, crew.ownerUid).get()).data() as MemberDoc | undefined;
+  const owner = (await memberRef(db, crewId, ride.createdBy).get()).data() as MemberDoc | undefined;
   const ownerName = owner?.displayName ?? "Your friend";
-  const wrote = await writeActivityOnce(db, crewId, `ride_${rideId}`, "ride", crew.ownerUid, owner, {
+  const wrote = await writeActivityOnce(db, crewId, `ride_${rideId}`, "ride", ride.createdBy, owner, {
     driverUid: ride.driverUid,
     driverName: driver.displayName,
     fromName: ride.fromName,

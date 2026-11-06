@@ -1,4 +1,4 @@
-import type { Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import type { Auth } from "firebase-admin/auth";
 import { crewRef, inviteCodeRef, userRef } from "../lib/firestore.js";
 import type { CrewDoc, UserDoc } from "../types.js";
@@ -14,7 +14,12 @@ export async function cleanupUser(db: Firestore, uid: string): Promise<void> {
     }
   }
   const memberships = await db.collectionGroup("members").where("uid", "==", uid).get();
-  await Promise.all(memberships.docs.map((d) => d.ref.delete()));
+  await Promise.all(
+    memberships.docs.map(async (d) => {
+      await d.ref.delete();
+      if (d.get("role") === "coowner") await d.ref.parent.parent?.update({ coOwnerUids: FieldValue.arrayRemove(uid) });
+    }),
+  );
   await userRef(db, uid).delete();
 }
 

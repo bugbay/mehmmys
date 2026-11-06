@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { crewRef, memberRef, membersCol, requestRef } from "../lib/firestore.js";
 import type { PushSender } from "../lib/push.js";
-import type { CrewDoc, MemberDoc, RequestDoc, RequestWhen } from "../types.js";
+import { isManager, type CrewDoc, type MemberDoc, type RequestDoc, type RequestWhen } from "../types.js";
 import { writeActivityOnce } from "./activity.js";
 
 const WHEN_LABEL: Record<RequestWhen, string> = {
@@ -14,7 +14,7 @@ const WHEN_LABEL: Record<RequestWhen, string> = {
 export async function applyRequestCreated(db: Firestore, push: PushSender, crewId: string, requestId: string): Promise<void> {
   const req = (await requestRef(db, crewId, requestId).get()).data() as RequestDoc | undefined;
   const crew = (await crewRef(db, crewId).get()).data() as CrewDoc | undefined;
-  if (!req || !crew || req.byUid !== crew.ownerUid) return;
+  if (!req || !crew || !isManager(crew, req.byUid)) return;
   const owner = (await memberRef(db, crewId, req.byUid).get()).data() as MemberDoc | undefined;
   const wrote = await writeActivityOnce(db, crewId, `request_${requestId}`, "request", req.byUid, owner, {
     fromName: req.fromName,

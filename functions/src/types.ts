@@ -1,6 +1,6 @@
 import type { Timestamp } from "firebase-admin/firestore";
 
-export type MemberRole = "owner" | "driver";
+export type MemberRole = "owner" | "coowner" | "driver";
 export type RequestWhen = "now" | "morning" | "afternoon" | "tonight";
 export type RedemptionStatus = "pending" | "delivered" | "rejected";
 export type ActivityType = "ride" | "request" | "claim" | "redeem";
@@ -30,6 +30,7 @@ export interface UserDoc {
 export interface CrewDoc {
   name: string;
   ownerUid: string;
+  coOwnerUids?: string[];
   inviteCode: string;
   rewardTiers: RewardTier[];
   createdAt: Timestamp;
@@ -103,4 +104,13 @@ export interface ActivityDoc {
   actorName: string;
   actorEmoji: string;
   [key: string]: unknown;
+}
+
+// founder or co-owner
+export function isManager(crew: Pick<CrewDoc, "ownerUid" | "coOwnerUids">, uid: string): boolean {
+  return crew.ownerUid === uid || (crew.coOwnerUids ?? []).includes(uid);
+}
+
+export function managerUids(crew: Pick<CrewDoc, "ownerUid" | "coOwnerUids">): string[] {
+  return [crew.ownerUid, ...(crew.coOwnerUids ?? [])];
 }

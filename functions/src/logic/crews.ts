@@ -6,6 +6,7 @@ import { crewRef, inviteCodeRef, memberRef, userRef } from "../lib/firestore.js"
 import type { CrewDoc, MemberDoc, MemberRole, UserDoc } from "../types.js";
 
 const MAX_CODE_ATTEMPTS = 5;
+const MAX_CO_OWNERS = 5;
 
 export function memberFromUser(uid: string, user: Partial<UserDoc>, role: MemberRole): MemberDoc {
   return {
@@ -91,6 +92,7 @@ export async function leaveCrew(db: Firestore, uid: string, input: { crewId: str
   if (!snap.exists) fail("not-found", "you are not in this crew");
   if (snap.get("role") === "owner") fail("failed-precondition", "owners delete their crew instead of leaving");
   await ref.delete();
+  await crewRef(db, input.crewId).update({ coOwnerUids: FieldValue.arrayRemove(uid) });
 }
 
 export async function removeMember(
@@ -103,6 +105,33 @@ export async function removeMember(
   const ref = memberRef(db, input.crewId, input.memberUid);
   if (!(await ref.get()).exists) fail("not-found", "member not found");
   await ref.delete();
+  await crewRef(db, input.crewId).update({ coOwnerUids: FieldValue.arrayRemove(input.memberUid) });
+}
+
+export async function setCoOwner(
+  db: Firestore,
+  uid: string,
+  input: { crewId: string; memberUid: string; coOwner: boolean },
+): Promise<void> {
+  await ownerCrew(db, uid, input?.crewId);
+  if (input.memberUid === uid) fail("failed-precondition", "the founder is already an owner");
+  const ref = memberRef(db, input.crewId, input.memberUid);
+  await db.runTransaction(async (tx) => {
+    const [crewSnap, memberSnap] = await Promise.all([tx.get(crewRef(db, input.crewId)), tx.get(ref)]);
+    if (!memberSnap.exists) fail("not-found", "member not found");
+    if (memberSnap.get("legacy") === true) fail("failed-precondition", "legacy members cannot be owners");
+    const current = (crewSnap.get("coOwnerUids") as string[] | undefined) ?? [];
+    if (input.coOwner) {
+      if (!current.includes(input.memberUid) && current.length >= MAX_CO_OWNERS) {
+        fail("resource-exhausted", `a crew can have at most ${MAX_CO_OWNERS} co-owners`);
+      }
+      tx.update(crewSnap.ref, { coOwnerUids: FieldValue.arrayUnion(input.memberUid) });
+      tx.update(ref, { role: "coowner" });
+    } else {
+      tx.update(crewSnap.ref, { coOwnerUids: FieldValue.arrayRemove(input.memberUid) });
+      tx.update(ref, { role: "driver" });
+    }
+  });
 }
 
 export async function linkLegacyMember(

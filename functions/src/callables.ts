@@ -27,6 +27,10 @@ export const removeMember = onCall(async (req) => {
   await crews.removeMember(db, uidOf(req), req.data);
   return { ok: true };
 });
+export const setCoOwner = onCall(async (req) => {
+  await crews.setCoOwner(db, uidOf(req), req.data);
+  return { ok: true };
+});
 export const linkLegacyMember = onCall(async (req) => {
   await crews.linkLegacyMember(db, uidOf(req), req.data);
   return { ok: true };

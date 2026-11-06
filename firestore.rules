@@ -8,6 +8,11 @@ service cloud.firestore {
     function memberPath(crewId, uid) { return /databases/$(database)/documents/crews/$(crewId)/members/$(uid); }
     function isMember(crewId) { return signedIn() && exists(memberPath(crewId, me())); }
     function isOwner(crewId) { return signedIn() && crewDoc(crewId).ownerUid == me(); }
+    // founder or co-owner
+    function isManager(crewId) {
+      let crew = crewDoc(crewId);
+      return signedIn() && (crew.ownerUid == me() || me() in crew.get('coOwnerUids', []));
+    }
     function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
     function onlyChanged(keys) { return changedKeys().hasOnly(keys); }
     function isShortString(v, max) { return v is string && v.size() > 0 && v.size() <= max; }
@@ -38,7 +43,7 @@ service cloud.firestore {
 
     match /crews/{crewId} {
       allow read: if isMember(crewId);
-      allow update: if isOwner(crewId)
+      allow update: if isManager(crewId)
         && onlyChanged(['name', 'rewardTiers'])
         && isShortString(request.resource.data.name, 40)
         && request.resource.data.rewardTiers is list
@@ -50,20 +55,20 @@ service cloud.firestore {
 
       match /places/{placeId} {
         allow read: if isMember(crewId);
-        allow create, update: if isOwner(crewId) && validPlace(request.resource.data);
-        allow delete: if isOwner(crewId);
+        allow create, update: if isManager(crewId) && validPlace(request.resource.data);
+        allow delete: if isManager(crewId);
       }
 
       match /rides/{rideId} {
         allow read: if isMember(crewId);
-        allow create: if isOwner(crewId) && validRide(crewId, request.resource.data);
+        allow create: if isManager(crewId) && validRide(crewId, request.resource.data);
       }
 
       match /requests/{requestId} {
         allow read: if isMember(crewId);
-        allow create: if isOwner(crewId) && validRequest(request.resource.data);
+        allow create: if isManager(crewId) && validRequest(request.resource.data);
         allow update: if isMember(crewId)
-          && !isOwner(crewId)
+          && resource.data.byUid != me()
           && resource.data.get('claimedBy', null) == null
           && request.resource.data.claimedBy == me()
           && request.resource.data.claimedAt == request.time
@@ -73,7 +78,7 @@ service cloud.firestore {
       match /redemptions/{redemptionId} {
         allow read: if isMember(crewId);
         allow create: if isMember(crewId) && validRedemption(crewId, request.resource.data);
-        allow update: if isOwner(crewId)
+        allow update: if isManager(crewId)
           && resource.data.status == 'pending'
           && resource.data.get('applied', false) == true
           && request.resource.data.status == 'delivered'

@@ -216,3 +216,50 @@ describe("legacy PWA board", () => {
     await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "groups/mehmmy-crew/friends/1")));
   });
 });
+
+describe("co-owners", () => {
+  // driver2 is promoted to co-owner the way setCoOwner does it
+  beforeEach(async () => {
+    await db.doc(`crews/${crewId}`).update({ coOwnerUids: [DRIVER2] });
+    await db.doc(`crews/${crewId}/members/${DRIVER2}`).update({ role: "coowner" });
+  });
+  const place = { name: "Gym", lat: 40.7, lng: -74.1, createdAt: serverTimestamp() };
+  const req = { byUid: DRIVER2, fromName: "Home", toName: "Work", when: "now", ts: serverTimestamp() };
+
+  it("co-owner can rename the crew and edit tiers", async () => {
+    await assertSucceeds(updateDoc(c(DRIVER2), { name: "Ours" }));
+  });
+  it("co-owner cannot change the co-owner list", async () => {
+    await assertFails(updateDoc(c(DRIVER2), { coOwnerUids: [DRIVER2, DRIVER] }));
+    await assertFails(updateDoc(c(OWNER), { coOwnerUids: [DRIVER] }));
+  });
+  it("co-owner can add and delete places", async () => {
+    await assertSucceeds(addDoc(collection(as(DRIVER2), `crews/${crewId}/places`), place));
+    await assertSucceeds(deleteDoc(c(DRIVER2, `/places/${placeId}`)));
+  });
+  it("co-owner can log a ride for another member but not for themselves", async () => {
+    const col = collection(as(DRIVER2), `crews/${crewId}/rides`);
+    await assertSucceeds(addDoc(col, ride({ createdBy: DRIVER2 })));
+    await assertSucceeds(addDoc(col, ride({ createdBy: DRIVER2, driverUid: OWNER })));
+    await assertFails(addDoc(col, ride({ createdBy: DRIVER2, driverUid: DRIVER2 })));
+  });
+  it("founder can log a ride crediting a co-owner", async () => {
+    await assertSucceeds(addDoc(collection(as(OWNER), `crews/${crewId}/rides`), ride({ driverUid: DRIVER2 })));
+  });
+  it("co-owner can create a request; others (incl. founder) can claim it, the requester cannot", async () => {
+    await assertSucceeds(setDoc(c(DRIVER2, "/requests/q2"), req));
+    await assertFails(updateDoc(c(DRIVER2, "/requests/q2"), { claimedBy: DRIVER2, claimedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(c(OWNER, "/requests/q2"), { claimedBy: OWNER, claimedAt: serverTimestamp() }));
+  });
+  it("co-owner can claim the founder's request", async () => {
+    await assertSucceeds(updateDoc(c(DRIVER2, "/requests/q1"), { claimedBy: DRIVER2, claimedAt: serverTimestamp() }));
+  });
+  it("co-owner can mark an applied redemption delivered", async () => {
+    await db.doc(`crews/${crewId}/redemptions/r1`).update({ applied: true });
+    await assertSucceeds(updateDoc(c(DRIVER2, "/redemptions/r1"), { status: "delivered" }));
+  });
+  it("plain drivers still cannot manage", async () => {
+    await assertFails(updateDoc(c(DRIVER), { name: "Mine" }));
+    await assertFails(addDoc(collection(as(DRIVER), `crews/${crewId}/places`), place));
+  });
+});
