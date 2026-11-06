@@ -37,7 +37,7 @@ final class AppState {
     var isOwner: Bool { crew.ownerID == me.id }
     // founder or co-owner: can log rides, send requests, edit places and rewards
     var isManager: Bool { crew.isManager(me.id) }
-    var rideCandidates: [Member] { crew.members.filter { $0.id != me.id } }
+    var rideCandidates: [Member] { crew.members.filter { $0.id != me.id && !$0.legacy } }
     var myMember: Member? { crew.members.first { $0.id == me.id } }
     var ownedCrew: Crew? { crews.first { $0.ownerID == me.id } }
 
@@ -110,6 +110,28 @@ final class AppState {
         if let remote { remote.removeMember(crewID: crew.id, memberID: id); return }
         crews[crewIndex].members.removeAll { $0.id == id }
         crews[crewIndex].coOwnerIDs.removeAll { $0 == id }
+    }
+
+    // founder folds an old web-board stub's counters into a member's real account
+    @discardableResult
+    func linkLegacy(stubID: String, memberID: String) -> Bool {
+        guard isOwner, let s = crew.members.firstIndex(where: { $0.id == stubID && $0.legacy }),
+              let m = crew.members.firstIndex(where: { $0.id == memberID && !$0.legacy }) else { return false }
+        let stub = crew.members[s]
+        if let remote {
+            remote.linkLegacyMember(crewID: crew.id, stubID: stubID, memberID: memberID)
+            show(Toast(emoji: "🔗", title: "History merged", subtitle: "\(stub.name)'s old Mehmmys moved to \(crew.members[m].name)"))
+            return true
+        }
+        var c = crew
+        c.members[m].mehmmys += stub.mehmmys
+        c.members[m].meters += stub.meters
+        c.members[m].rides += stub.rides
+        let name = c.members[m].name
+        c.members.remove(at: s)
+        crews[crewIndex] = c
+        show(Toast(emoji: "🔗", title: "History merged", subtitle: "\(stub.name)'s old Mehmmys moved to \(name)"))
+        return true
     }
 
     @discardableResult

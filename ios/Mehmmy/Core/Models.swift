@@ -11,6 +11,8 @@ struct Member: Identifiable, Hashable {
     var mehmmys: Int = 0
     var meters: Int = 0
     var rides: Int = 0
+    // imported from the old web board, not yet merged into a real account
+    var legacy = false
 }
 
 struct Place: Identifiable, Hashable {
@@ -80,6 +82,7 @@ struct Crew: Identifiable {
     var drivers: [Member] { members.filter { $0.role != .owner } }
 
     func isManager(_ id: String) -> Bool { ownerID == id || coOwnerIDs.contains(id) }
+    var legacyStubs: [Member] { members.filter(\.legacy) }
 
     static let empty = Crew(id: "", name: "", ownerID: "", inviteCode: "", members: [], places: [], tiers: [], requests: [], activity: [])
     var owner: Member? { members.first { $0.role == .owner } }

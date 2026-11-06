@@ -38,8 +38,7 @@ private func int(_ v: Any?) -> Int? {
 
 extension Member {
     static func from(id: String, data: [String: Any]) -> Member? {
-        guard data["legacy"] as? Bool != true,
-              let name = data["displayName"] as? String,
+        guard let name = data["displayName"] as? String,
               let role = Role(rawValue: data["role"] as? String ?? "") else { return nil }
         return Member(
             id: id,
@@ -49,7 +48,8 @@ extension Member {
             role: role,
             mehmmys: int(data["mehmmys"]) ?? 0,
             meters: int(data["meters"]) ?? 0,
-            rides: int(data["rides"]) ?? 0
+            rides: int(data["rides"]) ?? 0,
+            legacy: data["legacy"] as? Bool == true
         )
     }
 }

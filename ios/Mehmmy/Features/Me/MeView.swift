@@ -170,7 +170,7 @@ struct MeView: View {
                 Text("Make someone a co-owner and they can log rides, ask for rides and edit places and rewards too.")
                     .font(Typo.body(11)).foregroundStyle(Palette.subtle)
             }
-            ForEach(state.crew.drivers) { m in
+            ForEach(state.crew.drivers.filter { !$0.legacy }) { m in
                 HStack(spacing: 11) {
                     Avatar(emoji: m.emoji, color: m.color, size: 34)
                     VStack(alignment: .leading, spacing: 1) {
@@ -203,6 +203,7 @@ struct MeView: View {
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .brutal(Palette.paper, radius: 13)
             }
+            if state.isOwner && !state.crew.legacyStubs.isEmpty { legacySection.padding(.top, 10) }
             let banked = state.crew.drivers.reduce(0) { $0 + $1.mehmmys }
             HStack(spacing: 11) {
                 Text("💛").font(.system(size: 24))
@@ -211,6 +212,40 @@ struct MeView: View {
             .padding(14)
             .brutal(Palette.yellow, radius: 15, shadow: 3)
             .padding(.top, 6)
+        }
+    }
+
+    // stubs imported from the old web board; merge each into the friend's real account once they join
+    private var legacySection: some View {
+        let real = state.crew.drivers.filter { !$0.legacy }
+        return VStack(alignment: .leading, spacing: 9) {
+            Eyebrow(text: "From the old app · \(state.crew.legacyStubs.count)")
+            Text("Once a friend joins, merge their old Mehmmys into their new account.")
+                .font(Typo.body(11)).foregroundStyle(Palette.subtle)
+            ForEach(state.crew.legacyStubs) { stub in
+                HStack(spacing: 11) {
+                    Avatar(emoji: stub.emoji, color: stub.color, size: 34)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(stub.name).font(Typo.body(14, .bold))
+                        Text("\(stub.mehmmys) \(plural(stub.mehmmys)) · \(stub.rides) \(stub.rides == 1 ? "ride" : "rides")").font(Typo.body(11)).foregroundStyle(Palette.muted)
+                    }
+                    Spacer()
+                    Menu {
+                        ForEach(real) { m in
+                            Button("Merge into \(m.name)") { state.linkLegacy(stubID: stub.id, memberID: m.id) }
+                        }
+                    } label: {
+                        Text("Merge").font(Typo.body(12, .heavy)).foregroundStyle(Palette.ink)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(Capsule().fill(real.isEmpty ? Palette.disabled : Palette.yellow))
+                            .overlay(Capsule().strokeBorder(Palette.ink, lineWidth: 1.5))
+                    }
+                    .disabled(real.isEmpty)
+                    .accessibilityLabel("Merge \(stub.name) into a member")
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .brutal(Palette.locked, radius: 13)
+            }
         }
     }
 

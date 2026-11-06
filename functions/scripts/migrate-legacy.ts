@@ -1,4 +1,4 @@
-// one-off: copy the legacy PWA board (groups/mehmmy-crew) into a crew owned by --owner-uid
+// one-off: copy the legacy PWA board (groups/mehmmy-crew) into the crew owned by --owner-uid (created if missing)
 // usage: npx tsx scripts/migrate-legacy.ts --owner-uid <uid> --crew-name "<name>" [--group mehmmy-crew] [--dry-run]
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
@@ -34,7 +34,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  const { crewId, inviteCode } = await createCrew(db, ownerUid, { name: crewName });
+  // reuse the crew the owner already started in the app, otherwise create one
+  const owned = (await db.doc(`users/${ownerUid}`).get()).get("ownedCrewId") as string | undefined;
+  const { crewId, inviteCode } = owned
+    ? { crewId: owned, inviteCode: (await db.doc(`crews/${owned}`).get()).get("inviteCode") as string }
+    : await createCrew(db, ownerUid, { name: crewName });
   const batch = db.batch();
   for (const p of places.docs) {
     const d = p.data();

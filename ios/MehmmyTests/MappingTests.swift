@@ -19,7 +19,7 @@ final class MappingTests: XCTestCase {
         XCTAssertEqual(m?.role, .driver)
         XCTAssertEqual(m?.mehmmys, 4)
         XCTAssertEqual(m?.meters, 34120)
-        XCTAssertNil(Member.from(id: "x", data: ["legacy": true, "role": "driver", "displayName": "Old"]))
+        XCTAssertEqual(Member.from(id: "x", data: ["legacy": true, "role": "driver", "displayName": "Old"])?.legacy, true)
     }
 
     func testActivityFromDocuments() {

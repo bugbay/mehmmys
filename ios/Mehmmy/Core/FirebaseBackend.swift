@@ -260,6 +260,10 @@ final class FirebaseBackend: RemoteActions {
         fire("removeMember", ["crewId": crewID, "memberUid": memberID])
     }
 
+    func linkLegacyMember(crewID: String, stubID: String, memberID: String) {
+        fire("linkLegacyMember", ["crewId": crewID, "stubId": stubID, "memberUid": memberID])
+    }
+
     func setCoOwner(crewID: String, memberID: String, on: Bool) {
         fire("setCoOwner", ["crewId": crewID, "memberUid": memberID, "coOwner": on])
     }

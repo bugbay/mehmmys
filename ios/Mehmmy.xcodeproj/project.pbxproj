@@ -51,6 +51,7 @@
 		F1A6E7DFB6FA57DED06D39AC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1070BA32C8A9B920F45E043D /* RootView.swift */; };
 		F351F1C19E3F41A73C185F03 /* DriverPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DAB0D5C535D2CE31691E132 /* DriverPicker.swift */; };
 		FA125713500827A8F475352D /* RemoteActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC610340A907CD4A3C6AFC91 /* RemoteActions.swift */; };
+		FCEE7167A2D1C54C7637D042 /* LegacyLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068FF27426EEF04CFD59ED7C /* LegacyLinkTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +73,7 @@
 
 /* Begin PBXFileReference section */
 		01287D391210FD0E2D1F3AE0 /* RideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideView.swift; sourceTree = "<group>"; };
+		068FF27426EEF04CFD59ED7C /* LegacyLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyLinkTests.swift; sourceTree = "<group>"; };
 		0782CD15DBC66F3806BE7632 /* Mehmmy.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mehmmy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1070BA32C8A9B920F45E043D /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		165F2A5E4164B385CE72444E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -270,6 +272,7 @@
 				4E45791D85992D8896C286D4 /* AppStateTests.swift */,
 				21B5734D7CBC1B22E83B5A75 /* CoOwnerTests.swift */,
 				C57B179FC9E37D02C1E80226 /* JoinLinkTests.swift */,
+				068FF27426EEF04CFD59ED7C /* LegacyLinkTests.swift */,
 				D2C8346FCFA3FB0A063C8515 /* MappingTests.swift */,
 				1A06D96556036603D7A16D09 /* RideTrackerTests.swift */,
 				A8DCECEBEF2D4FCA4C3A3DCF /* ThemeTests.swift */,
@@ -480,6 +483,7 @@
 				D98E0CF909B55387D8FF2BCD /* AppStateTests.swift in Sources */,
 				97CCD97198D4F6E6D72B9AC7 /* CoOwnerTests.swift in Sources */,
 				AE34C1A2D319F6C41F471EC0 /* JoinLinkTests.swift in Sources */,
+				FCEE7167A2D1C54C7637D042 /* LegacyLinkTests.swift in Sources */,
 				2FC57BA40CE31C59E02F3DEC /* MappingTests.swift in Sources */,
 				A2C4DF78B948D73D1AD63C3C /* RideTrackerTests.swift in Sources */,
 				56ABB23E5E0BEE036D0D5948 /* ThemeTests.swift in Sources */,
