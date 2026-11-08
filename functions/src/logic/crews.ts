@@ -2,7 +2,7 @@ import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 import { fail } from "../lib/errors.js";
 import { DEFAULT_TIERS } from "../lib/defaultTiers.js";
 import { generateInviteCode, isValidInviteCode, normaliseInviteCode } from "../lib/inviteCode.js";
-import { crewRef, inviteCodeRef, memberRef, userRef } from "../lib/firestore.js";
+import { crewRef, inviteCodeRef, memberRef, statsRef, userRef } from "../lib/firestore.js";
 import type { CrewDoc, MemberDoc, MemberRole, UserDoc } from "../types.js";
 
 const MAX_CODE_ATTEMPTS = 5;
@@ -16,7 +16,6 @@ export function memberFromUser(uid: string, user: Partial<UserDoc>, role: Member
     emoji: user.emoji ?? "🙂",
     color: user.color ?? "#FDBA74",
     mehmmys: 0,
-    meters: 0,
     rides: 0,
     joinedAt: Timestamp.now(),
   };
@@ -92,6 +91,7 @@ export async function leaveCrew(db: Firestore, uid: string, input: { crewId: str
   if (!snap.exists) fail("not-found", "you are not in this crew");
   if (snap.get("role") === "owner") fail("failed-precondition", "owners delete their crew instead of leaving");
   await ref.delete();
+  await statsRef(db, input.crewId, uid).delete();
   await crewRef(db, input.crewId).update({ coOwnerUids: FieldValue.arrayRemove(uid) });
 }
 
@@ -105,6 +105,7 @@ export async function removeMember(
   const ref = memberRef(db, input.crewId, input.memberUid);
   if (!(await ref.get()).exists) fail("not-found", "member not found");
   await ref.delete();
+  await statsRef(db, input.crewId, input.memberUid).delete();
   await crewRef(db, input.crewId).update({ coOwnerUids: FieldValue.arrayRemove(input.memberUid) });
 }
 
@@ -142,17 +143,21 @@ export async function linkLegacyMember(
   await ownerCrew(db, uid, input?.crewId);
   const stubRef = memberRef(db, input.crewId, input.stubId);
   const realRef = memberRef(db, input.crewId, input.memberUid);
+  const stubStats = statsRef(db, input.crewId, input.stubId);
+  const realStats = statsRef(db, input.crewId, input.memberUid);
   await db.runTransaction(async (tx) => {
-    const [stubSnap, realSnap] = await Promise.all([tx.get(stubRef), tx.get(realRef)]);
+    const [stubSnap, realSnap, stubStatsSnap] = await Promise.all([tx.get(stubRef), tx.get(realRef), tx.get(stubStats)]);
     if (!stubSnap.exists || stubSnap.get("legacy") !== true) fail("failed-precondition", "not a legacy member");
     if (!realSnap.exists || realSnap.get("legacy") === true) fail("not-found", "member not found");
     const stub = stubSnap.data() as MemberDoc;
     tx.update(realRef, {
       mehmmys: FieldValue.increment(stub.mehmmys ?? 0),
-      meters: FieldValue.increment(stub.meters ?? 0),
       rides: FieldValue.increment(stub.rides ?? 0),
     });
+    const meters = ((stubStatsSnap.get("meters") as number | undefined) ?? 0) + (stub.meters ?? 0);
+    tx.set(realStats, { meters: FieldValue.increment(meters) }, { merge: true });
     tx.delete(stubRef);
+    tx.delete(stubStats);
   });
 }
 

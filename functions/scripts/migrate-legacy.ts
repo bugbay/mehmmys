@@ -55,9 +55,11 @@ async function main(): Promise<void> {
       emoji: d.emoji,
       color: d.color,
       mehmmys: Number(d.mehmmys) || 0,
-      meters: Math.round((Number(d.miles) || 0) * METERS_PER_MILE),
       rides: Number(d.rides) || 0,
       joinedAt: Timestamp.now(),
+    });
+    batch.set(db.doc(`crews/${crewId}/stats/legacy-${f.id}`), {
+      meters: Math.round((Number(d.miles) || 0) * METERS_PER_MILE),
     });
   }
   for (const a of activity.docs) {

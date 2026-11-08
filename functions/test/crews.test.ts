@@ -12,7 +12,7 @@ describe("createCrew", () => {
     const crew = (await db.doc(`crews/${crewId}`).get()).data()!;
     expect(crew).toMatchObject({ name: "Mehmed's crew", ownerUid: uid, inviteCode, rewardTiers: DEFAULT_TIERS });
     expect((await db.doc(`crews/${crewId}/members/${uid}`).get()).data()).toMatchObject({
-      uid, role: "owner", displayName: "Mehmed", emoji: "🙋", mehmmys: 0, meters: 0, rides: 0,
+      uid, role: "owner", displayName: "Mehmed", emoji: "🙋", mehmmys: 0, rides: 0,
     });
     expect((await db.doc(`inviteCodes/${inviteCode}`).get()).data()).toEqual({ crewId });
     expect((await db.doc(`users/${uid}`).get()).get("ownedCrewId")).toBe(crewId);
@@ -57,7 +57,7 @@ describe("joinCrew", () => {
     const { uid } = await makeUser(db, { displayName: "Leo", emoji: "🐶", color: "#7DD3FC" });
     expect(await joinCrew(db, uid, { code: " ab 23\tcd\n" })).toEqual({ crewId });
     expect((await db.doc(`crews/${crewId}/members/${uid}`).get()).data()).toMatchObject({
-      uid, role: "driver", displayName: "Leo", emoji: "🐶", color: "#7DD3FC", mehmmys: 0, meters: 0, rides: 0,
+      uid, role: "driver", displayName: "Leo", emoji: "🐶", color: "#7DD3FC", mehmmys: 0, rides: 0,
     });
     expect(inviteCode).toBe("AB23CD");
   });
@@ -124,7 +124,8 @@ describe("linkLegacyMember", () => {
     ({ uid: ownerUid } = await makeUser(db));
     ({ uid: leo } = await makeUser(db));
     ({ crewId } = await makeCrew(db, ownerUid));
-    await makeMember(db, crewId, leo, { mehmmys: 1, meters: 500, rides: 1 });
+    await makeMember(db, crewId, leo, { mehmmys: 1, rides: 1 });
+    await db.doc(`crews/${crewId}/stats/${leo}`).set({ meters: 500 });
     await db.doc(`crews/${crewId}/members/stub1`).set({
       legacy: true, role: "driver", displayName: "Leo", emoji: "🐶", color: "#7DD3FC", mehmmys: 4, meters: 20000, rides: 4,
     });
@@ -132,7 +133,8 @@ describe("linkLegacyMember", () => {
 
   it("moves the stub's counters onto the real member and deletes the stub", async () => {
     await linkLegacyMember(db, ownerUid, { crewId, stubId: "stub1", memberUid: leo });
-    expect((await db.doc(`crews/${crewId}/members/${leo}`).get()).data()).toMatchObject({ mehmmys: 5, meters: 20500, rides: 5 });
+    expect((await db.doc(`crews/${crewId}/members/${leo}`).get()).data()).toMatchObject({ mehmmys: 5, rides: 5 });
+    expect((await db.doc(`crews/${crewId}/stats/${leo}`).get()).get("meters")).toBe(20500);
     expect((await db.doc(`crews/${crewId}/members/stub1`).get()).exists).toBe(false);
   });
 

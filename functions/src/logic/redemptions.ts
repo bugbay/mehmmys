@@ -37,6 +37,8 @@ export async function applyRedemptionCreated(
     title: tier.title,
     cost: tier.cost,
     redemptionId,
+    public: true,
+    involved: [driverUid],
   });
   if (!wrote) return;
   await push.sendToUsers(db, managerUids(crew), {

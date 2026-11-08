@@ -269,6 +269,25 @@ struct MeView: View {
         VStack(alignment: .leading, spacing: 10) {
             Eyebrow(text: "Settings")
             VStack(spacing: 0) {
+                if state.isOwner {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Ride details").font(Typo.body(14, .bold))
+                            Spacer()
+                            Picker("Ride details", selection: Binding(get: { state.crew.detailsVisible }, set: { state.setDetailsVisible($0) })) {
+                                Text("Owners only").tag(false)
+                                Text("Everyone").tag(true)
+                            }
+                            .tint(Palette.subtle)
+                        }
+                        Text(state.crew.detailsVisible
+                             ? "Drivers can see every ride's route and distance, and your saved places."
+                             : "Drivers only see their own rides. Routes, distances and saved places stay with you and co-owners.")
+                            .font(Typo.body(11)).foregroundStyle(Palette.subtle)
+                    }
+                    .padding(.horizontal, 13).padding(.vertical, 10)
+                    Divider().overlay(Palette.locked)
+                }
                 HStack {
                     Text("Distance").font(Typo.body(14, .bold))
                     Spacer()

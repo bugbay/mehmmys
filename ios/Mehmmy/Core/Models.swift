@@ -71,6 +71,8 @@ struct Crew: Identifiable {
     var name: String
     var ownerID: String
     var coOwnerIDs: [String] = []
+    // founder's choice: false keeps routes, distances and places to owners only
+    var detailsVisible = false
     var inviteCode: String
     var members: [Member]
     var places: [Place]
@@ -83,6 +85,18 @@ struct Crew: Identifiable {
 
     func isManager(_ id: String) -> Bool { ownerID == id || coOwnerIDs.contains(id) }
     var legacyStubs: [Member] { members.filter(\.legacy) }
+}
+
+// which slice of a crew's ride details the signed-in user is allowed to load
+enum DetailScope: Equatable {
+    case all, mine
+
+    static func `for`(isManager: Bool, detailsVisible: Bool) -> DetailScope {
+        isManager || detailsVisible ? .all : .mine
+    }
+}
+
+extension Crew {
 
     static let empty = Crew(id: "", name: "", ownerID: "", inviteCode: "", members: [], places: [], tiers: [], requests: [], activity: [])
     var owner: Member? { members.first { $0.role == .owner } }

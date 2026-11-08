@@ -4,7 +4,7 @@ struct BoardView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        let ranked = state.crew.drivers.sorted { ($0.mehmmys, $0.meters) > ($1.mehmmys, $1.meters) }
+        let ranked = state.crew.drivers.sorted { ($0.mehmmys, $0.rides) > ($1.mehmmys, $1.rides) }
         Screen {
             VStack(alignment: .leading, spacing: 12) {
                 CrewSwitcher()
@@ -15,7 +15,7 @@ struct BoardView: View {
                     Avatar(emoji: top.emoji, color: top.color, size: 54)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(top.name).font(Typo.display(20))
-                        Text("\(top.mehmmys) \(plural(top.mehmmys)) banked · \(Distance.format(top.meters, unit: state.me.unit))")
+                        Text(["\(top.mehmmys) \(plural(top.mehmmys)) banked", state.distanceText(for: top)].compactMap { $0 }.joined(separator: " · "))
                             .font(Typo.body(12, .bold)).foregroundStyle(Palette.forest)
                     }
                     Spacer()
@@ -44,7 +44,7 @@ struct BoardView: View {
                         Avatar(emoji: m.emoji, color: m.color, size: 36)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(m.id == state.me.id ? "\(m.name) (you)" : m.name).font(Typo.body(15, .bold))
-                            Text("\(m.rides) \(m.rides == 1 ? "ride" : "rides") · \(Distance.format(m.meters, unit: state.me.unit))")
+                            Text(["\(m.rides) \(m.rides == 1 ? "ride" : "rides")", state.distanceText(for: m)].compactMap { $0 }.joined(separator: " · "))
                                 .font(Typo.body(11)).foregroundStyle(Palette.muted)
                         }
                         Spacer()

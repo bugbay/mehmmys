@@ -38,9 +38,13 @@ final class FirebaseBackend: RemoteActions {
         var doc: [String: Any]?
         var members: [Member] = []
         var places: [Place] = []
-        var requests: [RideRequest] = []
-        var activity: [ActivityItem] = []
+        var meters: [String: Int] = [:]
+        // drivers in a private crew load two slices (open + mine, public + involving me); merged in rebuild
+        var requestSlices: [String: [RideRequest]] = [:]
+        var activitySlices: [String: [ActivityItem]] = [:]
+        var scope: DetailScope?
     }
+    private var scopedListeners: [String: [ListenerRegistration]] = [:]
 
     init(state: AppState) {
         self.state = state
@@ -58,6 +62,8 @@ final class FirebaseBackend: RemoteActions {
         membershipListener?.remove()
         crewListeners.values.flatMap { $0 }.forEach { $0.remove() }
         crewListeners = [:]
+        scopedListeners.values.flatMap { $0 }.forEach { $0.remove() }
+        scopedListeners = [:]
         parts = [:]
         uid = user?.uid
         userLoaded = false
@@ -142,6 +148,8 @@ final class FirebaseBackend: RemoteActions {
                     for gone in Set(self.crewListeners.keys).subtracting(ids) {
                         self.crewListeners[gone]?.forEach { $0.remove() }
                         self.crewListeners[gone] = nil
+                        self.scopedListeners[gone]?.forEach { $0.remove() }
+                        self.scopedListeners[gone] = nil
                         self.parts[gone] = nil
                     }
                     for id in ids where self.crewListeners[id] == nil { self.attachCrew(id) }
@@ -161,33 +169,84 @@ final class FirebaseBackend: RemoteActions {
             }
         }
         crewListeners[id] = [
-            ref.addSnapshotListener { snap, _ in
+            ref.addSnapshotListener { [weak self] snap, _ in
                 let data = snap?.data()
                 update { $0.doc = data }
+                Task { @MainActor in self?.rescope(id, doc: data) }
             },
             ref.collection("members").addSnapshotListener { snap, _ in
                 let members = snap?.documents.compactMap { Member.from(id: $0.documentID, data: $0.data()) } ?? []
                 update { $0.members = members }
             },
-            ref.collection("places").order(by: "createdAt").addSnapshotListener { snap, _ in
-                let places = snap?.documents.compactMap { Place.from(id: $0.documentID, data: $0.data()) } ?? []
-                update { $0.places = places }
-            },
-            ref.collection("requests").order(by: "ts", descending: true).limit(to: 20).addSnapshotListener { snap, _ in
-                let requests = snap?.documents.compactMap { d -> RideRequest? in
+        ]
+    }
+
+    // places, stats, requests and activity depend on whether this user may see the whole crew
+    private func rescope(_ id: String, doc: [String: Any]?) {
+        guard let uid, let doc, parts[id] != nil else { return }
+        let managers = [doc["ownerUid"] as? String ?? ""] + (doc["coOwnerUids"] as? [String] ?? [])
+        let scope = DetailScope.for(isManager: managers.contains(uid), detailsVisible: doc["detailsVisibility"] as? String == "everyone")
+        guard parts[id]?.scope != scope else { return }
+        scopedListeners[id]?.forEach { $0.remove() }
+        parts[id]?.scope = scope
+        parts[id]?.places = []
+        parts[id]?.meters = [:]
+        parts[id]?.requestSlices = [:]
+        parts[id]?.activitySlices = [:]
+        let ref = db.collection("crews").document(id)
+        let update: (@escaping (inout CrewParts) -> Void) -> Void = { [weak self] change in
+            Task { @MainActor in
+                guard let self, self.parts[id]?.scope == scope else { return }
+                change(&self.parts[id]!)
+                self.rebuild()
+            }
+        }
+        let requests = { (key: String, q: Query) in
+            q.addSnapshotListener { snap, _ in
+                let list = snap?.documents.compactMap { d -> RideRequest? in
                     let data = d.data(with: .estimate)
                     return RideRequest.from(id: d.documentID, data: data, date: (data["ts"] as? Timestamp)?.dateValue() ?? .now)
                 } ?? []
-                update { $0.requests = requests }
-            },
-            ref.collection("activity").order(by: "ts", descending: true).limit(to: 50).addSnapshotListener { snap, _ in
-                let items = snap?.documents.compactMap { d -> ActivityItem? in
+                update { $0.requestSlices[key] = list }
+            }
+        }
+        let activity = { (key: String, q: Query) in
+            q.addSnapshotListener { snap, _ in
+                let list = snap?.documents.compactMap { d -> ActivityItem? in
                     let data = d.data(with: .estimate)
                     return ActivityItem.from(id: d.documentID, data: data, date: (data["ts"] as? Timestamp)?.dateValue() ?? .now)
                 } ?? []
-                update { $0.activity = items }
-            },
-        ]
+                update { $0.activitySlices[key] = list }
+            }
+        }
+        let reqs = ref.collection("requests"), acts = ref.collection("activity")
+        switch scope {
+        case .all:
+            scopedListeners[id] = [
+                ref.collection("places").order(by: "createdAt").addSnapshotListener { snap, _ in
+                    let places = snap?.documents.compactMap { Place.from(id: $0.documentID, data: $0.data()) } ?? []
+                    update { $0.places = places }
+                },
+                ref.collection("stats").addSnapshotListener { snap, _ in
+                    var m: [String: Int] = [:]
+                    snap?.documents.forEach { m[$0.documentID] = ($0.data()["meters"] as? NSNumber)?.intValue ?? 0 }
+                    update { $0.meters = m }
+                },
+                requests("all", reqs.order(by: "ts", descending: true).limit(to: 20)),
+                activity("all", acts.order(by: "ts", descending: true).limit(to: 50)),
+            ]
+        case .mine:
+            scopedListeners[id] = [
+                ref.collection("stats").document(uid).addSnapshotListener { snap, _ in
+                    let meters = (snap?.data()?["meters"] as? NSNumber)?.intValue ?? 0
+                    update { $0.meters = [uid: meters] }
+                },
+                requests("open", reqs.whereField("claimedBy", isEqualTo: NSNull()).limit(to: 20)),
+                requests("mine", reqs.whereField("claimedBy", isEqualTo: uid).limit(to: 20)),
+                activity("public", acts.whereField("public", isEqualTo: true).limit(to: 50)),
+                activity("mine", acts.whereField("involved", arrayContains: uid).limit(to: 50)),
+            ]
+        }
     }
 
     private func rebuild() {
@@ -200,12 +259,17 @@ final class FirebaseBackend: RemoteActions {
                 name: doc["name"] as? String ?? "Crew",
                 ownerID: doc["ownerUid"] as? String ?? "",
                 coOwnerIDs: doc["coOwnerUids"] as? [String] ?? [],
+                detailsVisible: doc["detailsVisibility"] as? String == "everyone",
                 inviteCode: doc["inviteCode"] as? String ?? "",
-                members: p.members,
+                members: p.members.map { m in
+                    var m = m
+                    if let meters = p.meters[m.id] { m.meters = meters }
+                    return m
+                },
                 places: p.places,
                 tiers: tiers,
-                requests: p.requests,
-                activity: p.activity
+                requests: Self.merged(p.requestSlices, id: \.id, date: \.date),
+                activity: Self.merged(p.activitySlices, id: \.id, date: \.date)
             )
         }
         .sorted { a, b in
@@ -215,6 +279,13 @@ final class FirebaseBackend: RemoteActions {
         state.crews = crews
         if !crews.contains(where: { $0.id == state.currentCrewID }) { state.currentCrewID = crews.first?.id ?? "" }
         recomputePhase()
+    }
+
+    private static func merged<T>(_ slices: [String: [T]], id: KeyPath<T, String>, date: KeyPath<T, Date>) -> [T] {
+        var seen = Set<String>()
+        return slices.values.flatMap { $0 }
+            .filter { seen.insert($0[keyPath: id]).inserted }
+            .sorted { $0[keyPath: date] > $1[keyPath: date] }
     }
 
     private func recomputePhase() {
@@ -258,6 +329,10 @@ final class FirebaseBackend: RemoteActions {
 
     func removeMember(crewID: String, memberID: String) {
         fire("removeMember", ["crewId": crewID, "memberUid": memberID])
+    }
+
+    func setDetailsVisible(crewID: String, on: Bool) {
+        crew(crewID).updateData(["detailsVisibility": on ? "everyone" : "owners"]) { [weak self] err in self?.report(err) }
     }
 
     func linkLegacyMember(crewID: String, stubID: String, memberID: String) {

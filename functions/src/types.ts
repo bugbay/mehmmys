@@ -31,6 +31,7 @@ export interface CrewDoc {
   name: string;
   ownerUid: string;
   coOwnerUids?: string[];
+  detailsVisibility?: "owners" | "everyone";
   inviteCode: string;
   rewardTiers: RewardTier[];
   createdAt: Timestamp;
@@ -43,7 +44,8 @@ export interface MemberDoc {
   emoji: string;
   color: string;
   mehmmys: number;
-  meters: number;
+  // distance moved to stats/{uid} so drivers cannot read each other's km; legacy docs may still carry it
+  meters?: number;
   rides: number;
   joinedAt: Timestamp;
   legacy?: boolean;

@@ -147,9 +147,9 @@ describe("redemptions", () => {
 });
 
 describe("function-owned collections", () => {
-  it("members can read activity and routes", async () => {
-    await assertSucceeds(getDoc(c(DRIVER, "/activity/a1")));
-    await assertSucceeds(getDoc(c(DRIVER, "/routes/a_b")));
+  it("owners can read activity and routes", async () => {
+    await assertSucceeds(getDoc(c(OWNER, "/activity/a1")));
+    await assertSucceeds(getDoc(c(OWNER, "/routes/a_b")));
   });
   it("outsider cannot read activity", async () => { await assertFails(getDoc(c(OUTSIDER, "/activity/a1"))); });
   it("clients cannot write activity, routes or invite codes", async () => {
@@ -261,5 +261,81 @@ describe("co-owners", () => {
   it("plain drivers still cannot manage", async () => {
     await assertFails(updateDoc(c(DRIVER), { name: "Mine" }));
     await assertFails(addDoc(collection(as(DRIVER), `crews/${crewId}/places`), place));
+  });
+});
+
+describe("ride details privacy", () => {
+  // default crews have no detailsVisibility field, which means owners only
+  beforeEach(async () => {
+    await db.doc(`crews/${crewId}/activity/mine`).set({ type: "ride", public: false, involved: [OWNER, DRIVER] });
+    await db.doc(`crews/${crewId}/activity/theirs`).set({ type: "ride", public: false, involved: [OWNER, DRIVER2] });
+    await db.doc(`crews/${crewId}/activity/pub`).set({ type: "request", public: true, involved: [OWNER] });
+    await db.doc(`crews/${crewId}/rides/ride2`).set({ driverUid: DRIVER2, meters: 100 });
+    await db.doc(`crews/${crewId}/stats/${DRIVER}`).set({ meters: 100 });
+    await db.doc(`crews/${crewId}/stats/${DRIVER2}`).set({ meters: 200 });
+    await db.doc(`crews/${crewId}/requests/q3`).set({ byUid: OWNER, fromName: "A", toName: "B", when: "now", ts: new Date(), claimedBy: DRIVER2, claimedAt: new Date() });
+  });
+  const everyone = () => db.doc(`crews/${crewId}`).update({ detailsVisibility: "everyone" });
+
+  it("driver sees only their own ride details by default", async () => {
+    await assertSucceeds(getDoc(c(DRIVER, "/activity/mine")));
+    await assertSucceeds(getDoc(c(DRIVER, "/activity/pub")));
+    await assertFails(getDoc(c(DRIVER, "/activity/theirs")));
+    await assertSucceeds(getDoc(c(DRIVER, "/rides/ride1")));
+    await assertFails(getDoc(c(DRIVER, "/rides/ride2")));
+    await assertSucceeds(getDoc(c(DRIVER, `/stats/${DRIVER}`)));
+    await assertFails(getDoc(c(DRIVER, `/stats/${DRIVER2}`)));
+  });
+
+  it("driver queries scoped to themselves or public rows succeed; the unscoped feed fails", async () => {
+    const col = collection(as(DRIVER), `crews/${crewId}/activity`);
+    await assertSucceeds(getDocs(query(col, where("involved", "array-contains", DRIVER))));
+    await assertSucceeds(getDocs(query(col, where("public", "==", true))));
+    await assertFails(getDocs(col));
+  });
+
+  it("drivers cannot read saved places or routes by default", async () => {
+    await assertFails(getDoc(c(DRIVER, `/places/${placeId}`)));
+    await assertFails(getDoc(c(DRIVER, "/routes/a_b")));
+  });
+
+  it("drivers see open requests and their own claims, not others' claims", async () => {
+    await assertSucceeds(getDoc(c(DRIVER, "/requests/q1")));
+    await assertFails(getDoc(c(DRIVER, "/requests/q3")));
+    await assertSucceeds(getDoc(c(DRIVER2, "/requests/q3")));
+    const col = collection(as(DRIVER), `crews/${crewId}/requests`);
+    await assertSucceeds(getDocs(query(col, where("claimedBy", "==", null))));
+    await assertSucceeds(getDocs(query(col, where("claimedBy", "==", DRIVER))));
+  });
+
+  it("owners and co-owners see everything", async () => {
+    await assertSucceeds(getDoc(c(OWNER, "/activity/theirs")));
+    await assertSucceeds(getDocs(collection(as(OWNER), `crews/${crewId}/activity`)));
+    await assertSucceeds(getDoc(c(OWNER, `/stats/${DRIVER2}`)));
+    await db.doc(`crews/${crewId}`).update({ coOwnerUids: [DRIVER2] });
+    await assertSucceeds(getDoc(c(DRIVER2, "/activity/mine")));
+    await assertSucceeds(getDoc(c(DRIVER2, `/places/${placeId}`)));
+  });
+
+  it("in everyone mode drivers see the whole crew", async () => {
+    await everyone();
+    await assertSucceeds(getDoc(c(DRIVER, "/activity/theirs")));
+    await assertSucceeds(getDocs(collection(as(DRIVER), `crews/${crewId}/activity`)));
+    await assertSucceeds(getDoc(c(DRIVER, `/stats/${DRIVER2}`)));
+    await assertSucceeds(getDoc(c(DRIVER, `/places/${placeId}`)));
+    await assertSucceeds(getDoc(c(DRIVER, "/requests/q3")));
+  });
+
+  it("only the founder switches visibility, to a valid value", async () => {
+    await assertSucceeds(updateDoc(c(OWNER), { detailsVisibility: "everyone" }));
+    await assertSucceeds(updateDoc(c(OWNER), { detailsVisibility: "owners" }));
+    await assertFails(updateDoc(c(OWNER), { detailsVisibility: "public" }));
+    await db.doc(`crews/${crewId}`).update({ coOwnerUids: [DRIVER2] });
+    await assertFails(updateDoc(c(DRIVER2), { detailsVisibility: "everyone" }));
+    await assertFails(updateDoc(c(DRIVER), { detailsVisibility: "everyone" }));
+  });
+
+  it("clients cannot write stats", async () => {
+    await assertFails(setDoc(c(OWNER, `/stats/${DRIVER}`), { meters: 1 }));
   });
 });

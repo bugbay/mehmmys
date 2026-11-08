@@ -37,6 +37,21 @@ final class AppState {
     var isOwner: Bool { crew.ownerID == me.id }
     // founder or co-owner: can log rides, send requests, edit places and rewards
     var isManager: Bool { crew.isManager(me.id) }
+    var seesDetails: Bool { DetailScope.for(isManager: isManager, detailsVisible: crew.detailsVisible) == .all }
+
+    // nil when this viewer may not see that member's distance
+    func distanceText(for m: Member) -> String? {
+        guard seesDetails || m.id == me.id else { return nil }
+        return Distance.format(m.meters, unit: me.unit)
+    }
+
+    @discardableResult
+    func setDetailsVisible(_ on: Bool) -> Bool {
+        guard isOwner else { return false }
+        if let remote { remote.setDetailsVisible(crewID: crew.id, on: on) } else { crews[crewIndex].detailsVisible = on }
+        return true
+    }
+
     var rideCandidates: [Member] { crew.members.filter { $0.id != me.id && !$0.legacy } }
     var myMember: Member? { crew.members.first { $0.id == me.id } }
     var ownedCrew: Crew? { crews.first { $0.ownerID == me.id } }

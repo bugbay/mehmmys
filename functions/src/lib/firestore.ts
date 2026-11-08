@@ -12,5 +12,6 @@ export const redemptionRef = (db: Firestore, crewId: string, redemptionId: strin
   db.doc(`crews/${crewId}/redemptions/${redemptionId}`);
 export const routeRef = (db: Firestore, crewId: string, fromId: string, toId: string) =>
   db.doc(`crews/${crewId}/routes/${fromId}_${toId}`);
+export const statsRef = (db: Firestore, crewId: string, uid: string) => db.doc(`crews/${crewId}/stats/${uid}`);
 export const activityCol = (db: Firestore, crewId: string) => db.collection(`crews/${crewId}/activity`);
 export const inviteCodeRef = (db: Firestore, code: string) => db.doc(`inviteCodes/${code}`);

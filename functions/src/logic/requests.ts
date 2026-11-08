@@ -21,6 +21,8 @@ export async function applyRequestCreated(db: Firestore, push: PushSender, crewI
     toName: req.toName,
     when: req.when,
     requestId,
+    public: true,
+    involved: [req.byUid],
   });
   if (!wrote) return;
 
@@ -47,6 +49,8 @@ export async function applyRequestClaimed(db: Firestore, push: PushSender, crewI
     driverName: driver.displayName,
     fromName: req.fromName,
     toName: req.toName,
+    public: false,
+    involved: [req.claimedBy, req.byUid],
   });
   if (!wrote) return;
   await push.sendToUsers(db, [req.byUid], {

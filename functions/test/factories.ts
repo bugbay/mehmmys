@@ -71,7 +71,6 @@ function memberData(uid: string, user: Doc, role: "owner" | "driver"): Doc {
     emoji: user.emoji ?? "🐢",
     color: user.color ?? "#FDBA74",
     mehmmys: 0,
-    meters: 0,
     rides: 0,
     joinedAt: Timestamp.now(),
   };

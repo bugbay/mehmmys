@@ -1,5 +1,5 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
-import { crewRef, memberRef, rideRef, userRef } from "../lib/firestore.js";
+import { crewRef, memberRef, rideRef, statsRef, userRef } from "../lib/firestore.js";
 import { formatDistance, resolveUnit } from "../lib/distance.js";
 import type { PushSender } from "../lib/push.js";
 import { isManager, type CrewDoc, type MemberDoc, type RideDoc, type UserDoc } from "../types.js";
@@ -29,9 +29,9 @@ export async function applyRideCreated(db: Firestore, push: PushSender, crewId: 
     }
     tx.update(driverSnap.ref, {
       mehmmys: FieldValue.increment(1),
-      meters: FieldValue.increment(ride.meters),
       rides: FieldValue.increment(1),
     });
+    tx.set(statsRef(db, crewId, ride.driverUid), { meters: FieldValue.increment(ride.meters) }, { merge: true });
     tx.update(ref, { applied: true });
     return { ride, crew: crew as CrewDoc, driver: driverSnap.data() as MemberDoc };
   });
@@ -47,6 +47,8 @@ export async function applyRideCreated(db: Firestore, push: PushSender, crewId: 
     toName: ride.toName,
     meters: ride.meters,
     rideId,
+    public: false,
+    involved: [ride.createdBy, ride.driverUid],
   });
   if (!wrote) return;
 

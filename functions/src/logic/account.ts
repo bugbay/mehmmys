@@ -17,6 +17,7 @@ export async function cleanupUser(db: Firestore, uid: string): Promise<void> {
   await Promise.all(
     memberships.docs.map(async (d) => {
       await d.ref.delete();
+      await d.ref.parent.parent?.collection("stats").doc(uid).delete();
       if (d.get("role") === "coowner") await d.ref.parent.parent?.update({ coOwnerUids: FieldValue.arrayRemove(uid) });
     }),
   );

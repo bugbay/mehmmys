@@ -13,6 +13,10 @@ service cloud.firestore {
       let crew = crewDoc(crewId);
       return signedIn() && (crew.ownerUid == me() || me() in crew.get('coOwnerUids', []));
     }
+    // ride routes, distances and saved places: owners only unless the founder opens them to everyone
+    function seesAll(crewId) {
+      return isManager(crewId) || crewDoc(crewId).get('detailsVisibility', 'owners') == 'everyone';
+    }
     function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
     function onlyChanged(keys) { return changedKeys().hasOnly(keys); }
     function isShortString(v, max) { return v is string && v.size() > 0 && v.size() <= max; }
@@ -43,29 +47,35 @@ service cloud.firestore {
 
     match /crews/{crewId} {
       allow read: if isMember(crewId);
-      allow update: if isManager(crewId)
-        && onlyChanged(['name', 'rewardTiers'])
-        && isShortString(request.resource.data.name, 40)
-        && request.resource.data.rewardTiers is list
-        && request.resource.data.rewardTiers.size() <= 10;
+      allow update: if (isManager(crewId)
+          && onlyChanged(['name', 'rewardTiers'])
+          && isShortString(request.resource.data.name, 40)
+          && request.resource.data.rewardTiers is list
+          && request.resource.data.rewardTiers.size() <= 10)
+        || (isOwner(crewId)
+          && onlyChanged(['detailsVisibility'])
+          && request.resource.data.detailsVisibility in ['owners', 'everyone']);
 
       match /members/{memberId} {
         allow read: if isMember(crewId);
       }
 
       match /places/{placeId} {
-        allow read: if isMember(crewId);
+        allow read: if isMember(crewId) && seesAll(crewId);
         allow create, update: if isManager(crewId) && validPlace(request.resource.data);
         allow delete: if isManager(crewId);
       }
 
       match /rides/{rideId} {
-        allow read: if isMember(crewId);
+        allow read: if isMember(crewId) && (seesAll(crewId) || resource.data.driverUid == me());
         allow create: if isManager(crewId) && validRide(crewId, request.resource.data);
       }
 
       match /requests/{requestId} {
-        allow read: if isMember(crewId);
+        allow read: if isMember(crewId) && (seesAll(crewId)
+          || resource.data.get('claimedBy', null) == null
+          || resource.data.get('claimedBy', null) == me()
+          || resource.data.byUid == me());
         allow create: if isManager(crewId) && validRequest(request.resource.data);
         allow update: if isMember(crewId)
           && resource.data.byUid != me()
@@ -86,11 +96,17 @@ service cloud.firestore {
       }
 
       match /activity/{activityId} {
-        allow read: if isMember(crewId);
+        allow read: if isMember(crewId) && (seesAll(crewId)
+          || resource.data.get('public', false) == true
+          || me() in resource.data.get('involved', []));
       }
 
       match /routes/{routeId} {
-        allow read: if isMember(crewId);
+        allow read: if isMember(crewId) && seesAll(crewId);
+      }
+
+      match /stats/{memberId} {
+        allow read: if isMember(crewId) && (seesAll(crewId) || memberId == me());
       }
     }
 

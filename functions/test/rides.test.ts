@@ -29,7 +29,8 @@ const activity = async () => (await db.collection(`crews/${crewId}/activity`).ge
 it("credits the driver, writes activity and pushes the driver", async () => {
   const rideId = await addRide();
   await applyRideCreated(db, push, crewId, rideId);
-  expect(await member()).toMatchObject({ mehmmys: 1, meters: 8530, rides: 1 });
+  expect(await member()).toMatchObject({ mehmmys: 1, rides: 1 });
+  expect((await db.doc(`crews/${crewId}/stats/${driverUid}`).get()).get("meters")).toBe(8530);
   const acts = await activity();
   expect(acts).toHaveLength(1);
   expect(acts[0]).toMatchObject({
@@ -80,7 +81,8 @@ it("is idempotent", async () => {
   const rideId = await addRide();
   await applyRideCreated(db, push, crewId, rideId);
   await applyRideCreated(db, push, crewId, rideId);
-  expect(await member()).toMatchObject({ mehmmys: 1, meters: 8530, rides: 1 });
+  expect(await member()).toMatchObject({ mehmmys: 1, rides: 1 });
+  expect((await db.doc(`crews/${crewId}/stats/${driverUid}`).get()).get("meters")).toBe(8530);
   expect(await activity()).toHaveLength(1);
   expect(await outbox()).toHaveLength(1);
 });
